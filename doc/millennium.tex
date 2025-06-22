@@ -1,0 +1,481 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{multicol}
+\usepackage{longtable}
+\usepackage{supertabular}
+
+
+\title{Millennium Encryption}
+\author{Robert Rattray}
+\date{June 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+Millennium Encryption is a classical cipher inspired by the tale, passed down from one generation to the next (and perhaps someday to passed down to a third generation, once they are born) of typing alphabetical messages on numeric keypads.  A naïve manual implementation consists of two steps - substitution and compression - while a more efficient version is possible.  It is not especially secure, though it does have the advantage of not consisting wholly of substitution and transposition, and of requiring bit-level operations for encryption and thus for decryption.
+
+\section{Description of method}
+\subsection{Overview}
+In encrypting manually, it helps to recall those tales of antiquity, of how the typing of letters was effected by the repeated striking of numbers on a numeric keypad.  The keypad would have ten buttons, numbered one through nine and zero, with the digits two through eight corresponding to a partition of the alphabet (two to ABC, three to DEF, and on).  Striking the 2 key once would indicate the letter A, twice B, and thrice C; similarly striking the 3 key once would indicate D, and so on.  The result of this is well-documented; it results in messages such as \verb|good 4 u|, written in a shorthand including digits.  The means of typing digits may have been lost to time, though one source suggests it was achieved by pressing the number key once more than the number of letters to which it corresponded.  This means of communication presents a difficulty in distinguishing between "ab" and "c" and similar combinations - that is, between one press of the "1" key followed by two more, and three presses.  One simply had to wait when typing multiple letters on the same key, not so if the next letter desired appeared on another key.
+
+Millennium Encryption operates roughly analogously by treating the byte as a teenager of antiquity would a keypad, with high bits corresponding to keypresses.  A byte consists of eight bits, suggesting eight buttons. Three presses to the "2" button would be indicated by the second bit in three consecutive bytes being set.  Some compression is achieved by starting each sequence of raised bits as soon as it is possible to do so without ambiguity; for example, if one wished to suggest pressing the "2" key thrice followed by pressing the "7" key twice, one could express this message in three bytes as well, the latter two of which have the seventh bit set.  Appending a single press to the "3" key could be affected by setting the third bit in the last byte.
+
+In contrast, a message of a repeated character could not be compressed - if that character were expressed by two presses of the "2" key, then repeating it would require five bytes, the first and last two of which have their second bit set.  The middle byte is unset, analogous to the annoying wait endured by my texting ancestors.
+
+\subsection{Substitutions}
+If the above can be said to describe the heart of the encryption method, then the following choices of substitution can be said to describe perhaps the veins, by which the plaintext (tenor of the deoxygenated blood in this metaphor) is brought to the heart.  If not, then it is because the "heart" is a tired metaphor, and as such the keypress-to-byte operation may be referred to as the "core" of the cipher (at least by those unfamiliar with the etymology of the word).
+
+The first step in manual Millennium Encryption is to convert plaintext characters to sequences of keypresses.  In the simplest implementation, the mapping of characters to keypress sequences is as fixed and arbitrary as Morse code.
+
+This is to say, the choice of sequences corresponding to characters is not wholly arbitrary.  In Morse code, letters which occur more frequently are encrypted as shorter sequences, to effect compression.  In Millennium Encryption, owing to the overlap permitted of sequences, much of the extension of messages results from adjacent plaintext characters being encrypted to the same key (causing a sort of collision between sequences).
+
+Double letters (known to Gen X as the object of Fannee Doolee's affection, but the scourge of Millennials) guarantee sequence collisions.  As such, it is practical to assign the shortest sequences to frequently doubled characters.  In a byte of eight bits, with the first bit reserved for special sequences, there are seven one-press sequences; it seems appropriate to assign to them the seven most-frequently doubled letters, which were found (at least, in \textit{Moby-Dick} to be $l$, $e$, $o$, $s$, $t$, $p$, and $r$, in descending order.  The seven next-most-frequently doubled-letters were found to be $f$, $m$, $n$, $b$, $d$, $c$, and $g$, though the doubling of those letters occurs less frequently than adjacency between many pairs of letters.
+
+The most frequently occurring letters (again, in \textit{Moby-Dick} and in descending order), are $e$, $t$, $a$, $o$, $n$, $i$, $s$, $h$, $r$, $l$, $d$, $u$, $m$, $c$, $w$, $g$, $f$, $y$, and $p$.  The most frequently occurring letters not assigned to a one-press sequences, $a$, of all the letters assigned to a one-press sequence, is least often adjacent to $o$ - and so is assigned a sequence of twice pressing the key pressed once for $o$.  The next, $n$, is rarely found adjacent to $p$, and is assigned a sequence of twice pressing the key pressed once for $p$.  The next, $i$, is often found next to $e$, but less often than next to $l$, $s$, $t$, $r$, $a$ or $i$, or $p$ or $n$, so is assigned to the same key as $e$.  Similar decisions fill out the rest of the table below.
+
+\begin{table}
+    \centering
+    \begin{tabular}{ccccccc}
+        2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        \hline
+        o & e & s & l & t & r & p\\
+        a & i & c & m & d & h & n\\
+         & u & b & f & g & v & y\\
+         &  &  & w & k & q & j\\
+         &  &  &  &  & x & z\\
+    \end{tabular}
+    \caption{Letters arranged in columns by key}
+    \label{tab:my_label}
+\end{table}
+
+It is unlikely that this method guarantees minimal collisions - it is uncertain even whether a more elaborate method involving the exact frequency of every pair of collisions including self, operating in a similarly greedy fashion, would result in the minimal sequence collision count for encrypting \textit{Moby-Dick}, and unproven whether this would result in the shortest possible encryption of the same text.  This is an arbitrary compromise which someone smarter may someday optimize.
+
+It is, admittedly, a pretty table, with the vowels in their own columns, and the columns sorted by length.  It also enables the beginning of a more complete table of sequences - one can see that $o$ corresponds to $2$, $a$ to $22$, and so on.  The first bit, $1$, has been reserved, but now it is time to decide for what purpose.
+
+Many classical ciphers are restricted to the encryption of letters, with no case distinction, which are sufficient for communication, if not pretty:
+\verb|i need a resume by august twentyfourth|.  Perhaps the worst defect of this is the lack of digits, which could more efficiently communicate numbers, though punctuation and capitals are also useful.
+
+To this end, sequences beginning with $1$ are proposed.  A singular $1$ followed by a sequence of another key repeated indicates a digit or special character, in accordance with the table below:
+
+\begin{table}
+    \centering
+    \begin{tabular}{ccccccc}
+        2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        \hline
+        0 & 1 & 2 & 3 & 4 & 5 & 6\\
+        7 & 8 & 9 & . & , & ? & !\\
+        ' & " & ; & - & / & ( & )\\
+    \end{tabular}
+    \caption{Sequences preceded by a single 1}
+    \label{tab:my_label}
+\end{table}
+
+In this case, the digit $2$ corresponds to the sequence $14$, the digit $9$ to $144$, and the comma to $166$.  The most common punctuation marks are awarded sequences of length three, with some of length four, shorter than they likely would have obtained if they had been consigned to the shorter table.
+
+Note that this table does not include a $1$ column.  Sequences beginning with a double $1$ are to be interpreted as capital letters, re-using the first table for ease of implementation.
+
+Sequences beginning with three or more ones may be used for any special characters.  For the sake of simplicity, those will not be chosen here; it will simply be stated that no valid sequence may end with $1$; it must consist of zero or more $1$s followed by one or more of another digit.  This can formalized with the regular expression \verb|1*([2-8])\1*|, or
+expressed as a set of rules:
+
+\subsubsection{Sequence rules}
+\begin{itemize}
+\item A valid sequence consists of at least one digit in the set {1, 2, 3, 4, 5, 6, 7, 8}
+\item A valid sequence is composed of either one or two distinct digits.
+\item If a valid sequence contains one distinct digit, that digit is not 1.
+\item If a valid sequence is composed of two distinct digits, it begins with '1', it does not end with '1', and no '1' is preceded by a digit other than '1'.
+\end{itemize}
+
+Equivalent sets exist.  It may be easiest to say that a sequence consists of a digit two through eight repeated some number of times, possibly preceded by one or more ones, as the regex puts it.
+
+\subsubsection{Complete table}
+To explain some entries in the table, it must be recalled that it is possible for some bytes to be empty.  A single empty byte may indicate a break in a double letter.  An additional byte's distance between the start of two letters, even if the sequences still overlap, represents a space.  An additional byte beyond that represents a new line.  Another is a tab.  These are represented in the table using sequences of zeroes.
+Combinations of these are described in the "decoding whitespace" section below.  Note also the character for the end of the document, the "great null terminator", a completely empty 32-bit-aligned 32-bit region.
+
+\begin{multicols}{2}
+
+\begin{supertabular}{|c|c|}
+\centering
+        newline & 00 \\
+        tab & 000 \\
+        space & 0 \\
+        ! & 188 \\
+        " & 1333 \\
+        \# & 1222222 \\
+        \$ & 66666 \\
+        \% & 144444 \\
+        \& & 12222 \\
+        ' & 1222 \\
+        ( & 1777 \\
+        ) & 1888 \\
+        * & 13333 \\
+        + & 133333 \\
+        , & 166 \\
+        - & 1555 \\
+        . & 155 \\
+        / & 1666 \\
+        0 & 12 \\
+        1 & 13 \\
+        2 & 14 \\
+        3 & 15 \\
+        4 & 16 \\
+        5 & 17 \\
+        6 & 18 \\
+        7 & 122 \\
+        8 & 133 \\
+        9 & 144 \\
+        : & 14444 \\
+        ; & 1444 \\
+        < & 15555 \\
+        = & 155555 \\
+        > & 16666 \\
+        ? & 177 \\
+        @ & 122222 \\
+        A & 122 \\
+        B & 1444 \\
+        C & 144 \\
+        D & 166 \\
+        E & 133 \\
+        F & 1555 \\
+        G & 1666 \\
+        H & 1777 \\
+        I & 133 \\
+        J & 18888 \\
+        K & 16666 \\
+        L & 15 \\
+        M & 155 \\
+        N & 188 \\
+        O & 12 \\
+        P & 18 \\
+        Q & 17777 \\
+        R & 17 \\
+        S & 14 \\
+        T & 16 \\
+        U & 1333 \\
+        V & 1777 \\
+        W & 15555 \\
+        X & 177777 \\
+        Y & 1888 \\
+        Z & 188888 \\
+        % [ & 17777  \\
+        % \texttt{\\} & 1666666 \\
+        % \texttt{]} & 18888 \\
+        % \texttt{^} & 1333333 \\
+        % \texttt{`} & 1777777 \\
+        a & 22 \\
+        b & 444 \\
+        c & 44 \\
+        d & 66 \\
+        e & 33 \\
+        f & 555 \\
+        g & 666 \\
+        h & 777 \\
+        i & 33 \\
+        j & 8888 \\
+        k & 6666 \\
+        l & 5 \\
+        m & 55 \\
+        n & 88 \\
+        o & 2 \\
+        p & 8 \\
+        q & 7777 \\
+        r & 7 \\
+        s & 4 \\
+        t & 6 \\
+        u & 333 \\
+        v & 777 \\
+        w & 5555 \\
+        x & 77777 \\
+        y & 888 \\
+        z & 88888 \\
+        % \texttt{\{} & 177777 \\
+        % \texttt{|} & 1888888 \\
+        % \texttt{\}} & 188888 \\
+        % \texttt{\~} & 1555555 \\
+\end{supertabular}
+
+\end{multicols}
+
+\subsection{Compression}
+Given a series of characters, it is easy to substitute each for a sequence.  The uniqueness of the code lies in compressing these bytes, which will be demonstrated via an example.
+
+Suppose that, since the text was optimized for \textit{Moby-Dick}, one wishes to encode \textit{Moby-Dick}, beginning with the first line of the first chapter:
+\begin{quote}
+``Call me Ishmael.''
+\end{quote}
+The first character, a capital $C$, corresponds to the sequence $1144$.  As such, the first bit of the first byte, the first bit of the second byte, the fourth bit of the third byte, and the fourth bit of the fourth byte in the output are set:
+
+\begin{table}
+    \centering
+    \begin{tabular}{cccccccc}
+        1 & 2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+    \end{tabular}
+    \caption{Capital C}
+    \label{tab:my_label}
+\end{table}
+
+The next character, a lowercase $a$, corresponds to the sequence $22$.  This must be written somewhere such that it is clear that it starts after the previous sequence.  It cannot be written in the first byte, of course, as that is where the previous sequence starts.  Nor can it be written in the second byte:
+\begin{table}
+    \centering
+    \begin{tabular}{cccccccc}
+        1 & 2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 1 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+    \end{tabular}
+    \caption{Invalid "Ca"; actually says "09".}
+    \label{tab:my_label}
+\end{table}
+
+As it would be identical in this case to the sequences $122$ and $144$.  As such there exists the rule:
+
+\emph{The non-1 part of any sequence must start at least one byte later than the non-1 part of the previous sequence.}
+
+This prevents a previous sequence's series of ones from being stolen by the sequence, and suggests where the letter $a$ begins:  in the fourth byte.
+
+\begin{table}
+    \centering
+    \begin{tabular}{cccccccc}
+        1 & 2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 1 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
+    \end{tabular}
+    \caption{Correct "Ca"}
+    \label{tab:my_label}
+\end{table}
+
+The next letter is $l$, represented by the sequence $5$; it can start in the fifth byte:
+
+\begin{table}
+    \centering
+    \begin{tabular}{cccccccc}
+        1 & 2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 1 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 1 & 0 & 0 & 1 & 0 & 0 & 0\\
+    \end{tabular}
+    \caption{"Cal"}
+    \label{tab:my_label}
+\end{table}
+
+The next character is also $l$, represented by the sequence $5$.  It cannot start on the byte after the previous, as this produces what could be the sequence $55$.  This results in the second rule:
+
+\emph{The non-1 part of any sequence must start at least two bytes after the termination of any previous sequence with the same non-1 digit}
+
+And the letter is encoded like so:
+
+\begin{table}
+    \centering
+    \begin{tabular}{cccccccc}
+        1 & 2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 1 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 1 & 0 & 0 & 1 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+    \end{tabular}
+    \caption{"Call"}
+    \label{tab:my_label}
+\end{table}
+
+The next character is a space - encoded by an extra byte's distance before the start of the next non-whitespace sequence.  The next sequence is $55$, for the letter $m$, so if ``Callm'' were written, the sequence would have to start two bytes after the $5$ for the second $l$.  The space is indicated in this case by an extra empty byte:
+
+\begin{table}
+    \centering
+    \begin{tabular}{cccccccc}
+        1 & 2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 1 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 1 & 0 & 0 & 1 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+        0 & 0 & 1 & 0 & 1 & 0 & 0 & 0\\
+    \end{tabular}
+    \caption{"Call me"}
+    \label{tab:my_label}
+\end{table}
+
+The $e$, sequence $3$, can start the very next byte, without extending the sequence.
+
+The next space goes before a capital $I$ - sequence $1133$ - which could start immediately after the $e$ without ambiguity - so the space is represented by only one empty byte in this case, rather than the previous two.
+
+\begin{table}
+    \centering
+    \begin{tabular}{cccccccc}
+        1 & 2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 1 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 1 & 0 & 0 & 1 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+        0 & 0 & 1 & 0 & 1 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
+    \end{tabular}
+    \caption{"Call me I"}
+    \label{tab:my_label}
+\end{table}
+
+The rest of the name "Ishmael" is written rather conveniently, with each character's sequence starting only one byte later than the previous, as there are no collisions.  The period adds its sequence, $155$, in three bytes at the end.
+
+\begin{table}
+    \centering
+    \begin{tabular}{cccccccc}
+        1 & 2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 1 & 1 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+        0 & 0 & 0 & 0 & 1 & 0 & 1 & 0\\
+        0 & 1 & 0 & 0 & 1 & 0 & 0 & 0\\
+        0 & 1 & 1 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+    \end{tabular}
+    \caption{"Ishmael."}
+    \label{tab:my_label}
+\end{table}
+
+Alternatively, suppose that the encoder of \textit{Moby-Dick} had decided to start with the words \verb|CHAPTER 1. Loomings|, with the word "Chapter" in all-capital letters as in Project Gutenberg's transcription.  As before, one would start with capital $C$ as the sequence $1144$, but what of the following capital $H$ and its sequence $1177$?  In this case, the rule is less intuitive:
+
+\emph{The 1 part of a sequence may start immediately after the termination of the 1 part of a previous sequence}
+
+Which is to say, the two sequences overlap by two bytes like this:
+\begin{table}
+    \centering
+    \begin{tabular}{cccccccc}
+        1 & 2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+    \end{tabular}
+    \caption{"CH"}
+    \label{tab:my_label}
+\end{table}
+Even with their ones touching, it is not ambiguous, because of the previous rules.  As soon as a bit not previously raised is raised, as the fourth bit is in the third byte, it is clear that one has reached the non-1 part of the character being read (they could not belong to a previous character, as they are new, nor to a future character, as it would have to start later than this non-1 part).  As such, the 1-part for the currently-read character need no longer be read there.  This allows for the word "CHAPTER" to be written out only slightly less efficiently than if it had not been capitalized.
+\begin{table}
+    \centering
+    \begin{tabular}{cccccccc}
+        1 & 2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+        1 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+    \end{tabular}
+    \caption{"CHAPTER"}
+    \label{tab:my_label}
+\end{table}
+
+One then considers the space between $R$ and $1$.  The digit $1$ is represented by the sequence $13$, which could start on the last byte of the $R$, leaving a single byte without the first bit unset (though the seventh bit is set) is sufficient to suggest a space.
+
+\begin{table}
+    \centering
+    \begin{tabular}{cccccccc}
+        1 & 2 & 3 & 4 & 5 & 6 & 7 & 8\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+        1 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\
+        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+        1 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\
+        0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\
+    \end{tabular}
+    \caption{"CHAPTER 1."}
+    \label{tab:my_label}
+\end{table}
+
+The period, sequence $15$, may start similarly close to the 1.
+
+It may be worth noting that there are cases wherein two adjacent sequence with a 1-part do not have their sequences start one after the other; for example, in encoding \verb|9:29|, in which the sequences are $144$, $1444$, $14$, and $144$, the first two rules dictate a greater distance between the sequences.
+
+\subsubsection{Decoding whitespace}
+In order to decode spaces, it is necessary to find the characters on either side of the space, just as in encoding.  By applying the encoding rules in reverse, one can determine how much farther apart than necessary two non-space characters were - and, it should be clear that if the difference is one byte, then there is a space between two words.  Yet to clarify what occurs if the difference is more:
+
+\begin{itemize}
+\item If the difference is two, there is a new line.
+\item If the difference is three, there is a tab character.
+\item If the difference is four, there are two new lines.
+\item If the difference is five, there is a new line followed by a tab character.  More generally, if the difference is two plus a multiple of three, there is a new line followed by tab characters.
+\item If the difference is six, there are two tab characters.  More generally, if the difference is a multiple of three, there are one-third as many tab characters.
+\item If the difference is seven, there are two new lines followed by a tab character.  More generally, if the difference is one more than a multiple of three, there are two new lines followed by tab characters.
+\end{itemize}
+
+Note that this implies that:
+\begin{itemize}
+\item One cannot have two or more adjacent spaces.
+\item One cannot have more than two adjacent new lines.
+\item One cannot have tabs followed by other forms of whitespace.
+\item There are no forms of whitespace besides spaces, new lines, and tabs.
+\item There is no extra whitespace at the end of the document.
+\end{itemize}
+All of which are perfectly reasonable things to expect in a message.  Only the last command conflicts with a popular file rule requiring lines to end in new-line characters, and this is easily remedied by, if one is decoding what needs to be such a file, including such a character.
+
+\section{Utility of method}
+
+\begin{quote}
+``Now then,'' Mr. Benedict went on, ``we must communicate often--and in secret.  For this we'll use Morse code.''
+
+``Morse code!'' Reynie cried, amazed.
+
+``\textit{Nobody} uses Morse code anymore,'' said Kate.
+
+``Precisely why it is useful to us,'' said Mr. Benedict.
+\end{quote}
+
+This encryption, it should be apparent, is not cryptographically secure in the modern sense.  While it may not be easy for a computer examining it at the byte level to decode it, it is perfectly decryptable by anyone with this document, and could be decrypted by someone experimenting with various plaintexts rather easily.
+
+The encryption, of course, can be modified:  the tables can be changed, the special role afforded to "1" could be expanded to include more keys, or there could be some significance ascribed to sequences consisting of multiple digits beginning simultaneously.  One could swap any columns' roles, or two could disagree about whether column 1 is the most or the least significant bit in a byte (as this document does not specify), or three could develop a way to dynamically optimize the tables for any particular message, and send those tables along with the message, similar to Huffman coding.  This implementation was even intended to be extended, with many valid sequences unclaimed.
+
+\end{document}
