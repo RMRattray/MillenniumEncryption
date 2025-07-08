@@ -30,7 +30,7 @@ int encrypt(std::istream &plaintext, std::ostream &ciphertext, std::unordered_ma
     uint8_t * c_start = buffer;
     char p = plaintext.get();
     uint8_t * c;
-    while (p) { // Actually want to check for end-of-file
+    while (p) { // TODO:  Check for end-of-file instead, prepare to use istringstream, ostringstream to work with strings from elsewhere in the program
         while(p && (c_start < buffer + BLOCKSIZE - BUFFER_SIZE)) {
             c = codebook[p];
             // If the non-ones part causes a conflict, keep moving
