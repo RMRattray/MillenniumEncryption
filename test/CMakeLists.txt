@@ -1,0 +1,2 @@
+add_executable(codebook_test codebook_test.cpp)
+target_link_libraries(codebook_test PRIVATE crypt)
