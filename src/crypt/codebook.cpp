@@ -21,7 +21,16 @@ byte_code to_byte_code(full_code code) {
     while (ch < end) {
         ++count; ++ch;
     }
-    return (ones << 6) | (digit << 3) | count;
+
+    switch (count) {
+        case 10:
+            return (digit - 1) << 6;
+        case 9:
+        case  8:
+            return (ones << 7) | (count << 6) | digit;
+        default:
+            return (ones << 6) | (digit << 3) | count;
+    }
 }
 
 full_code to_full_code(byte_code code) {
@@ -33,12 +42,12 @@ full_code to_full_code(byte_code code) {
     if (!digit) {
         if (!count) {
             count = 11;
-            digit = ones;
+            digit = ones + 1;
             ones = 0;
         }
         else {
             digit = count;
-            count = 8 + (ones & 1);
+            count = 9 + (ones & 1);
             ones = ones >> 1;
         }
     }
