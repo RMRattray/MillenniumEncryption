@@ -12,10 +12,8 @@ typedef std::string full_code;
 typedef std::string readable_code;
 
 byte_code to_byte_code(full_code code);
-// byte_code to_byte_code(readable_code code);
 full_code to_full_code(byte_code code);
 full_code to_full_code(readable_code code);
-readable_code to_readable_code(byte_code code);
 readable_code to_readable_code(full_code code);
 
 class Codebook {
@@ -28,11 +26,16 @@ class Codebook {
         byte_code codes[256];
 };
 
-// class FullCodebook : public Codebook {
-//     public:
-//         FullCodebook(std::string keyword);
-//     private:
-//         std::vector<full_code> full_codes;
-// };
+class FullCodebook : public Codebook {
+    public:
+        FullCodebook(std::string keyword);
+        full_code operator+(const char c) const;
+        byte_code operator*(const char c) const;
+        char operator-(const byte_code code) const;
+    private:
+        void get_full_codes();
+        std::vector<full_code> full_codes;
+        char uncodes[256];
+};
 
 #endif // CODEBOOK_H

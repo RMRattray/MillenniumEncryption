@@ -24,33 +24,31 @@ byte_code to_byte_code(full_code code) {
     return (ones << 6) | (digit << 3) | count;
 }
 
-// byte_code to_byte_code(readable_code code) {
-//     byte_code result = 0;
-//     uint8_t ones = 0, digit = 0, count = 0;
-//     char * ch = &code[0];
-//     while (*ch == '1') {
-//         ++ones; ++ch;
-//     }
-//     digit = (*ch == '0' ? 0 : (*ch - '1'));
-//     ++ch;
-//     while (*ch) {
-//         ++count; ++ch;
-//     }
-//     return (ones << 6) | (digit << 3) | count;
-// }
-
 full_code to_full_code(byte_code code) {
     full_code result = "";
     uint8_t ones = code >> 6;
     uint8_t digit = (code >> 3) & 7;
-    if (digit) digit = (1 << digit);
     uint8_t count = code & 7;
+
+    if (!digit) {
+        if (!count) {
+            count = 11;
+            digit = ones;
+            ones = 0;
+        }
+        else {
+            digit = count;
+            count = 8 + (ones & 1);
+            ones = ones >> 1;
+        }
+    }
+    else (count++);
 
     while (ones) {
         result += (char)1;
         --ones;
     }
-    result += (char)digit;
+    digit = (1 << digit);
     while (count) {
         result += (char)digit;
         --count;
@@ -80,30 +78,10 @@ full_code to_full_code(readable_code code) {
     return result;
 }
 
-readable_code to_readable_code(byte_code code) {
-    readable_code result = "";
-    uint8_t ones = code >> 6;
-    uint8_t digit = (code >> 3) & 7;
-    digit = digit ? ('1' + digit) : '0';
-    uint8_t count = code & 7;
-
-    while (ones) {
-        result += '1';
-        --ones;
-    }
-    result += digit;
-    while (count) {
-        result += digit;
-        --count;
-    }
-    return result;
-}
-
 readable_code to_readable_code(full_code code) {
     readable_code result = code;
     char * ch = &result[0];
-    char * end = ch + result.size();
-    while (ch < end) {
+    while (*ch) {
         switch (*ch) {
             case 0: *ch = '0'; break;
             case 1: *ch = '1'; break;
@@ -194,14 +172,27 @@ bool Codebook::verify() {
     return true;
 }
 
-// FullCodebook::FullCodebook(std::string keyword) {
-//     using Codebook::Codebook(keyword);
-// }
+FullCodebook::FullCodebook(std::string keyword) {
+    using Codebook::Codebook(keyword);
+    get_full_codes();
+}
 
-// void FullCodebook::get_full_codes() {
-//     byte_code * tortoise = codes;
-//     while (tortoise < codes + 256) {
-//         full_codes.push_back(tortoise);
-//         tortoise = codes + *tortoise;
-//     }
-// }
+void FullCodebook::get_full_codes() {
+    byte_code * tortoise = codes;
+    while (tortoise++ < codes + 256) {
+        full_codes.push_back(to_full_code(*tortoise));
+        uncodes[*tortoise] = tortoise - codes;
+    }
+}
+
+full_code FullCodebook::operator+(const char c) {
+    return full_codes[c];
+}
+
+byte_code FullCodebook::operator*(const char c) {
+    return codes[c];
+}
+
+char FullCodebook::operator-(const byte_code code) {
+    return uncodes[code];
+}

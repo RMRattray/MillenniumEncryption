@@ -1,6 +1,7 @@
 if (NOT TARGET millennium_crypt)
 add_library(millennium_crypt STATIC
-    encrypt.c
+    encrypt.cpp
+    encrypt.h
     codebook.cpp
     codebook.h
 )
