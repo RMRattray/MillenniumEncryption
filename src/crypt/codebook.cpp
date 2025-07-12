@@ -8,16 +8,17 @@
 byte_code to_byte_code(full_code code) {
     byte_code result = 0;
     uint8_t ones = 0, digit = 0, count = 0;
-    char * ch = &code[0];
+    uint8_t * ch = (uint8_t*)&code[0];
+    uint8_t * end = ch + code.size();
     while (*ch == 1) {
         ++ones; ++ch;
     }
     *ch = *ch >> 1;
     while (*ch) {
-        ++digit; *ch = *ch >> 1;
+        ++digit; *ch = (*ch) >> 1;
     }
     ++ch;
-    while (*ch != -1) {
+    while (ch < end) {
         ++count; ++ch;
     }
     return (ones << 6) | (digit << 3) | count;
@@ -49,11 +50,11 @@ full_code to_full_code(byte_code code) {
         result += (char)1;
         --ones;
     }
+    result += (char)digit;
     while (count) {
         result += (char)digit;
         --count;
     }
-    result += (char)(-1);
     return result;
 }
 
@@ -75,8 +76,7 @@ full_code to_full_code(readable_code code) {
             assert(false);
         }
         ++ch;
-    } 
-    result += (char)(-1);
+    }
     return result;
 }
 
@@ -91,6 +91,7 @@ readable_code to_readable_code(byte_code code) {
         result += '1';
         --ones;
     }
+    result += digit;
     while (count) {
         result += digit;
         --count;
@@ -101,7 +102,8 @@ readable_code to_readable_code(byte_code code) {
 readable_code to_readable_code(full_code code) {
     readable_code result = code;
     char * ch = &result[0];
-    while (*ch != -1) {
+    char * end = ch + result.size();
+    while (ch < end) {
         switch (*ch) {
             case 0: *ch = '0'; break;
             case 1: *ch = '1'; break;
@@ -117,7 +119,7 @@ readable_code to_readable_code(full_code code) {
         }
         ++ch;
     }
-    return result.substr(0, result.size() - 1);
+    return result;
 }
 
 Codebook::Codebook(std::string keyword) {
