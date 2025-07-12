@@ -1,24 +1,73 @@
 #include <istream>
+#include <stdexcept>
+#include "codebook.h"
+#include "encrypt.h"
 #include <stdint.h>
 #define BLOCKSIZE 128
 #define BUFFER_SIZE 16
 
 // Or's in highlighted bit from sequence 'what' to buffer at 'where',
 // and returns pointer to where the non-1 bytes start
-uint8_t * write(uint8_t * what, uint8_t * where) {
+uint8_t * write_to_buffer(full_code code, uint8_t * where) {
+
+    uint8_t * c = code.c_str();
+    if (!(*c)) return where + code.size();
+
     uint8_t * r;
     // Write the ones
-    while (*what == 1) {
-        *where |= *what;
+    while (*c == 1) {
+        *where |= *c;
         ++what; ++where;
     }
     // Note where they stop
-    r = *where;
+    r = where;
     // Write the rest
-    while (*what) {
-        *where |= *what;
+    while (*c) {
+        *where |= *c;
         ++what; ++where;
     }
+    return r + 1;
+}
+
+uint8_t * read_from_buffer(byte_code &code, uint8_t * where) {
+    uint8_t ones = 0, digit = 0, digit_power; count = 0;
+    uint8_t * r;
+    while (*where == 1) {
+        ++ones; ++where;
+    }
+    digit_power = *where;
+    switch (digit_power) {
+        case 0: digit = 0; break;
+        case 2: digit = 1; break;
+        case 4: digit = 2; break;
+        case 8: digit = 3; break;
+        case 16: digit = 4; break;
+        case 32: digit = 5; break;
+        case 64: digit = 6; break;
+        case 128: digit = 7; break;
+        default:
+        throw std::runtime_error("Invalid syntax in encrypted buffer");
+    }
+    ++where;
+    r = where;
+    if (digit_power) {
+        while (*where & digit_power) {
+            *where &= (~digit_power)
+            ++count;
+            ++where;
+        }
+    }
+    else {
+        int limit = 8;
+        while (limit-- && !(*where)) {
+            ++where;
+            ++count;
+        }
+        if (!limit) r = NULL; // Found end of the file
+    }
+
+    if (ones > 3 | digit > 7 | count > 7) throw std::runtime_error("Invalid syntax in encrypted buffer");
+    *code = (ones << 6) | (digit << 3) | count;
     return r;
 }
 
