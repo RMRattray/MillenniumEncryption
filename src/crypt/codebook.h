@@ -22,7 +22,7 @@ class Codebook {
         void write_to_file(std::string filename);
         bool read_from_file(std::string filename);
         bool verify();
-    private:
+    protected:
         byte_code codes[256];
 };
 

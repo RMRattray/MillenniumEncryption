@@ -172,8 +172,7 @@ bool Codebook::verify() {
     return true;
 }
 
-FullCodebook::FullCodebook(std::string keyword) {
-    using Codebook::Codebook(keyword);
+FullCodebook::FullCodebook(std::string keyword) : Codebook(keyword) {
     get_full_codes();
 }
 
@@ -185,14 +184,14 @@ void FullCodebook::get_full_codes() {
     }
 }
 
-full_code FullCodebook::operator+(const char c) {
+full_code FullCodebook::operator+(const char c) const {
     return full_codes[c];
 }
 
-byte_code FullCodebook::operator*(const char c) {
+byte_code FullCodebook::operator*(const char c) const {
     return codes[c];
 }
 
-char FullCodebook::operator-(const byte_code code) {
+char FullCodebook::operator-(const byte_code code) const {
     return uncodes[code];
 }
