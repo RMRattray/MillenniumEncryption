@@ -194,11 +194,11 @@ void FullCodebook::get_full_codes() {
     }
 }
 
-full_code FullCodebook::operator+(const char c) const {
+full_code FullCodebook::operator+(const unsigned char c) const {
     return full_codes[c];
 }
 
-byte_code FullCodebook::operator*(const char c) const {
+byte_code FullCodebook::operator*(const unsigned char c) const {
     return codes[c];
 }
 

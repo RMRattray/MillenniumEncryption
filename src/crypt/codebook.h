@@ -29,8 +29,8 @@ class Codebook {
 class FullCodebook : public Codebook {
     public:
         FullCodebook(std::string keyword);
-        full_code operator+(const char c) const;
-        byte_code operator*(const char c) const;
+        full_code operator+(const unsigned char c) const;
+        byte_code operator*(const unsigned char c) const;
         char operator-(const byte_code code) const;
     private:
         void get_full_codes();
