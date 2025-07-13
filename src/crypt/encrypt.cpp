@@ -50,7 +50,7 @@ uint8_t * where_to_write_in_buffer(byte_code code, uint8_t * start) {
 
     // Find where the digit would start to be written
     // And how far forward we need to move
-    uint8_t * dig_start = start + ones;
+    uint8_t * dig_start = start + (ones ? ones : 1);
     while (*dig_start & digit) ++dig_start;
     while (*(dig_start - 1) & digit) ++dig_start;
     return dig_start - ones;
@@ -82,13 +82,16 @@ uint8_t * read_from_buffer(byte_code &code, uint8_t * where) {
         do {
             ++where;
             ++ones;
-        } while (!(*(where + 1) & ~(*where)));
+        } while (!(*(where) & ~(*(where - 1))));
     }
     // That new non-one character is the digit
-    digit = (*(where + 1) & ~(*where));
-    ++where;
+    digit = (*(where) & ~(*(where - 1)));
     r = where; // Mark where the new non-one sequence starts
-    while (*where & digit) ++count;
+    ++where;
+    while (*where & digit) {
+        ++count;
+        ++where;
+    }
 
     // Assemble byte code from ones, digit, and count
     switch (digit) {
@@ -103,12 +106,12 @@ uint8_t * read_from_buffer(byte_code &code, uint8_t * where) {
     }
 
     switch (count) {
-        case 11:
+        case 10:
             code = (digit - 1) << 6;
             break;
-        case 10:
-        case  9:
-            code = (ones << 7) | (count << 5) | digit;
+        case 9:
+        case 8:
+            code = (ones << 7) | (count << 6) | digit;
             break;
         default:
             code = (ones << 6) | (digit << 3) | count;
@@ -120,30 +123,40 @@ uint8_t * read_from_buffer(byte_code &code, uint8_t * where) {
 
 // Encrypt a stream of characters from input to output stream
 void encrypt(std::istream &plaintext, std::ostream &ciphertext, FullCodebook codebook) {
-    const char * buffer = (const char *)malloc(BLOCKSIZE);
+    char * buffer = (char *)malloc(BLOCKSIZE);
     uint8_t * buffer_start = (uint8_t*)buffer;
+    memset(buffer_start, 0, BLOCKSIZE);
     uint8_t * c_start = buffer_start;
-    char p = plaintext.get();
+    char p;
     while (plaintext.good()) { // TODO:  Check for end-of-file instead, prepare to use istringstream, ostringstream to work with strings from elsewhere in the program
         while(plaintext.good() && (c_start < buffer_start + BLOCKSIZE - BUFFER_SIZE)) {
+            p = plaintext.get();
             c_start = where_to_write_in_buffer(codebook*p, c_start);
             c_start = write_to_buffer(codebook+p, c_start);
-            p = plaintext.get();
         }
-        // And roll back the tape
-        ciphertext.write(buffer, BLOCKSIZE - BUFFER_SIZE);
-        memcpy(buffer_start, buffer_start + BLOCKSIZE - BUFFER_SIZE, BUFFER_SIZE);
-        memset(buffer_start + BUFFER_SIZE, 0, BLOCKSIZE - BUFFER_SIZE);
+        // And roll back the tape, unless we're done,
+        if (plaintext.good()) {
+            ciphertext.write(buffer, BLOCKSIZE - BUFFER_SIZE);
+            memcpy(buffer_start, buffer_start + BLOCKSIZE - BUFFER_SIZE, BUFFER_SIZE);
+            memset(buffer_start + BUFFER_SIZE, 0, BLOCKSIZE - BUFFER_SIZE);
+            c_start -= (BLOCKSIZE - BUFFER_SIZE);
+        }
+        else { // In which case, simply write out what we've got
+            while (*c_start) ++c_start;
+            ciphertext.write(buffer, c_start - buffer_start);
+        }
     }
+    free(buffer);
 }
 
 void decrypt(std::istream &ciphertext, std::ostream &plaintext, FullCodebook codebook) {
     const char * buffer = (const char *)malloc(BLOCKSIZE + 1);
     uint8_t * buffer_start = (uint8_t*)buffer;
     uint8_t * c_start = buffer_start;
+    memset(buffer_start, 0, BLOCKSIZE);
     buffer_start[BLOCKSIZE] = 0xFF;
     byte_code code;
-    ciphertext.read((char*)buffer, BLOCKSIZE);
+    ciphertext.read(buffer, BLOCKSIZE);
     do {
         while (c_start && c_start < buffer_start + BLOCKSIZE - BUFFER_SIZE) {
             c_start = read_from_buffer(code, c_start);
@@ -154,4 +167,5 @@ void decrypt(std::istream &ciphertext, std::ostream &plaintext, FullCodebook cod
         ciphertext.read((char*)buffer_start + BUFFER_SIZE, BLOCKSIZE - BUFFER_SIZE);
         c_start -= (BLOCKSIZE - BUFFER_SIZE);
     } while (ciphertext.good());
+    free(buffer);
 }

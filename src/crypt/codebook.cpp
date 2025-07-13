@@ -187,9 +187,10 @@ FullCodebook::FullCodebook(std::string keyword) : Codebook(keyword) {
 
 void FullCodebook::get_full_codes() {
     byte_code * tortoise = codes;
-    while (tortoise++ < codes + 256) {
+    while (tortoise < codes + 256) {
         full_codes.push_back(to_full_code(*tortoise));
         uncodes[*tortoise] = tortoise - codes;
+        ++tortoise;
     }
 }
 

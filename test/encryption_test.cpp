@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
     FullCodebook codebook("test");
 
     std::cout << "Codebook includes:" << std::endl;
-    for (char c : "Hello, world!") {
+    for (char c : "Hello, world!\n") {
         std::cout << c << " -> " << to_readable_code(codebook + c) << std::endl;
     }
 

@@ -55,6 +55,16 @@ int main(int argc, char *argv[]) {
     assert(to_readable_code(full_g) == read_g);
     assert(to_readable_code(full_h) == read_h);
 
+    FullCodebook full_codebook("test");
+    char c = 'a';
+    for (char c : "abcdefghijklmnopqrstuvwxyz") {
+        assert(to_byte_code(full_codebook+c) == full_codebook * c);
+        assert(to_full_code(full_codebook*c) == full_codebook + c);
+        uint8_t p = full_codebook * c;
+        assert(full_codebook - p == c);
+        std::cout << c << " " << (int)p << std::endl;
+    }
+
     std::cout << "All tests passed" << std::endl;
     return 0;
 }
