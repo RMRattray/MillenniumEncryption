@@ -50,10 +50,16 @@ uint8_t * where_to_write_in_buffer(byte_code code, uint8_t * start) {
 
     // Find where the digit would start to be written
     // And how far forward we need to move
-    uint8_t * dig_start = start + (ones ? ones : 1);
+    uint8_t * dig_start = start + ones;
     while (*dig_start & digit) ++dig_start;
     while (*(dig_start - 1) & digit) ++dig_start;
-    return dig_start - ones;
+
+    // Also possible that, if writing a sequence of no ones,
+    // or writing *after* a sequence of no ones, we need to move forward one
+    uint8_t * one_start = start;
+    if (!ones || (ones && !(*(start - 1) & 1))) ++one_start;
+
+    return std::max(dig_start - ones, one_start);
 }
 
 // Returns code - the latest non-space (or non-odd-numbered space read in)
@@ -123,9 +129,10 @@ uint8_t * read_from_buffer(byte_code &code, uint8_t * where) {
 
 // Encrypt a stream of characters from input to output stream
 void encrypt(std::istream &plaintext, std::ostream &ciphertext, FullCodebook codebook) {
-    char * buffer = (char *)malloc(BLOCKSIZE);
-    uint8_t * buffer_start = (uint8_t*)buffer;
+    char * buffer = (char *)malloc(BLOCKSIZE + 1);
+    uint8_t * buffer_start = (uint8_t*)buffer + 1;
     memset(buffer_start, 0, BLOCKSIZE);
+    buffer[0] = 0xFF;
     uint8_t * c_start = buffer_start;
     char p;
     while (plaintext.good()) { // TODO:  Check for end-of-file instead, prepare to use istringstream, ostringstream to work with strings from elsewhere in the program
@@ -136,27 +143,27 @@ void encrypt(std::istream &plaintext, std::ostream &ciphertext, FullCodebook cod
         }
         // And roll back the tape, unless we're done,
         if (plaintext.good()) {
-            ciphertext.write(buffer, BLOCKSIZE - BUFFER_SIZE);
+            ciphertext.write(buffer + 1, BLOCKSIZE - BUFFER_SIZE);
             memcpy(buffer_start, buffer_start + BLOCKSIZE - BUFFER_SIZE, BUFFER_SIZE);
             memset(buffer_start + BUFFER_SIZE, 0, BLOCKSIZE - BUFFER_SIZE);
             c_start -= (BLOCKSIZE - BUFFER_SIZE);
         }
         else { // In which case, simply write out what we've got
             while (*c_start) ++c_start;
-            ciphertext.write(buffer, c_start - buffer_start);
+            ciphertext.write(buffer + 1, c_start - buffer_start);
         }
     }
     free(buffer);
 }
 
 void decrypt(std::istream &ciphertext, std::ostream &plaintext, FullCodebook codebook) {
-    const char * buffer = (const char *)malloc(BLOCKSIZE + 1);
-    uint8_t * buffer_start = (uint8_t*)buffer;
+    char * buffer = (char *)malloc(BLOCKSIZE + 1);
+    uint8_t * buffer_start = (uint8_t*)buffer + 1;
     uint8_t * c_start = buffer_start;
     memset(buffer_start, 0, BLOCKSIZE);
     buffer_start[BLOCKSIZE] = 0xFF;
     byte_code code;
-    ciphertext.read(buffer, BLOCKSIZE);
+    ciphertext.read(buffer + 1, BLOCKSIZE);
     do {
         while (c_start && c_start < buffer_start + BLOCKSIZE - BUFFER_SIZE) {
             c_start = read_from_buffer(code, c_start);
