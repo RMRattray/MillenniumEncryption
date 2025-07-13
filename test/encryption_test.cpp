@@ -44,5 +44,17 @@ int main(int argc, char *argv[]) {
     decrypt(ciphertext_new2, plaintext_new2, codebook);
     ciphertext_new2.close();
     plaintext_new2.close();
+
+    std::ifstream plaintext3("test/plaintext.txt");
+    std::ofstream ciphertext3("ciphertext3.mlnm");
+    encrypt(plaintext3, ciphertext3, codebook);
+    plaintext3.close();
+    ciphertext3.close();
+    std::ifstream ciphertext_new3("ciphertext3.mlnm");
+    std::ofstream plaintext_new3("plaintext3.txt");
+    decrypt(ciphertext_new3, plaintext_new3, codebook);
+    ciphertext_new3.close();
+    plaintext_new3.close();
+
     return 0;
 }

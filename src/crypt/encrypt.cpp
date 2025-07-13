@@ -148,6 +148,9 @@ void encrypt(std::istream &plaintext, std::ostream &ciphertext, FullCodebook cod
             memcpy(buffer_start, buffer_start + BLOCKSIZE - BUFFER_SIZE, BUFFER_SIZE);
             memset(buffer_start + BUFFER_SIZE, 0, BLOCKSIZE - BUFFER_SIZE);
             c_start -= (BLOCKSIZE - BUFFER_SIZE);
+
+            c_start = where_to_write_in_buffer(codebook*p, c_start);
+            c_start = write_to_buffer(codebook + p, c_start);
         }
         else { // In which case, simply write out what we've got
             while (*c_start) ++c_start;
@@ -159,22 +162,29 @@ void encrypt(std::istream &plaintext, std::ostream &ciphertext, FullCodebook cod
 
 void decrypt(std::istream &ciphertext, std::ostream &plaintext, FullCodebook codebook) {
     char * buffer = (char *)malloc(BLOCKSIZE + 1);
-    uint8_t * buffer_start = (uint8_t*)buffer + 1;
+    uint8_t * buffer_start = (uint8_t*)buffer;
     uint8_t * c_start = buffer_start;
     memset(buffer_start, 0, BLOCKSIZE);
-    buffer_start[BLOCKSIZE - 1] = 0xFF;
+    buffer_start[BLOCKSIZE] = 0xFF;
     byte_code code;
-    ciphertext.read(buffer + 1, BLOCKSIZE);
-    do {
+
+    ciphertext.read(buffer, BLOCKSIZE);
+    c_start = read_from_buffer(code, c_start);
+    while (c_start && c_start < buffer_start + BLOCKSIZE - BUFFER_SIZE) {
+        plaintext.put(codebook-code);
         c_start = read_from_buffer(code, c_start);
-        while (c_start && c_start < buffer_start + BLOCKSIZE - BUFFER_SIZE) {
-            plaintext.put(codebook-code);
-            c_start = read_from_buffer(code, c_start);
-        }
+    }
+    while (c_start) {
         memcpy(buffer_start, buffer_start + BLOCKSIZE - BUFFER_SIZE, BUFFER_SIZE);
         memset(buffer_start + BUFFER_SIZE, 0, BLOCKSIZE - BUFFER_SIZE);
         ciphertext.read((char*)buffer_start + BUFFER_SIZE, BLOCKSIZE - BUFFER_SIZE);
         c_start -= (BLOCKSIZE - BUFFER_SIZE);
-    } while (ciphertext.good());
+
+        while (c_start && c_start < buffer_start + BLOCKSIZE - BUFFER_SIZE) {
+            plaintext.put(codebook-code);
+            c_start = read_from_buffer(code, c_start);
+        }
+        
+    }
     free(buffer);
 }
