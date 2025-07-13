@@ -136,10 +136,11 @@ void encrypt(std::istream &plaintext, std::ostream &ciphertext, FullCodebook cod
     uint8_t * c_start = buffer_start;
     char p;
     while (plaintext.good()) { // TODO:  Check for end-of-file instead, prepare to use istringstream, ostringstream to work with strings from elsewhere in the program
+        p = plaintext.get();
         while(plaintext.good() && (c_start < buffer_start + BLOCKSIZE - BUFFER_SIZE)) {
-            p = plaintext.get();
             c_start = where_to_write_in_buffer(codebook*p, c_start);
             c_start = write_to_buffer(codebook+p, c_start);
+            p = plaintext.get();
         }
         // And roll back the tape, unless we're done,
         if (plaintext.good()) {
@@ -165,9 +166,10 @@ void decrypt(std::istream &ciphertext, std::ostream &plaintext, FullCodebook cod
     byte_code code;
     ciphertext.read(buffer + 1, BLOCKSIZE);
     do {
+        c_start = read_from_buffer(code, c_start);
         while (c_start && c_start < buffer_start + BLOCKSIZE - BUFFER_SIZE) {
-            c_start = read_from_buffer(code, c_start);
             plaintext.put(codebook-code);
+            c_start = read_from_buffer(code, c_start);
         }
         memcpy(buffer_start, buffer_start + BLOCKSIZE - BUFFER_SIZE, BUFFER_SIZE);
         memset(buffer_start + BUFFER_SIZE, 0, BLOCKSIZE - BUFFER_SIZE);
