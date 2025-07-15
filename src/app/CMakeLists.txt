@@ -4,6 +4,7 @@ qt_add_executable(millennium_serpent
 )
 target_link_libraries(millennium_serpent PRIVATE 
     Qt6::Widgets 
+    Qt6::Gui
     millennium_crypt
 )
 
