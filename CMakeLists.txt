@@ -11,9 +11,9 @@ qt_standard_project_setup()
 
 add_subdirectory(third_party)
 
-# add_subdirectory(src/app)
+add_subdirectory(src/app)
 add_subdirectory(src/crypt)
-# add_subdirectory(src/loc)
+add_subdirectory(src/loc)
 add_subdirectory(src/server)
 
-# add_subdirectory(test)
+add_subdirectory(test)
