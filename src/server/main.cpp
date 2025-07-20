@@ -9,6 +9,8 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
+#include <packet.h>
+
 // Global variables for managing clients
 std::map<std::string, SOCKET> clientSockets;
 std::mutex clientMutex;
@@ -18,7 +20,7 @@ bool serverRunning = true;
 void handleClient(SOCKET clientSocket, std::string clientIP) {
     std::cout << "New client connected from: " << clientIP << std::endl;
     
-    char receiveBuffer[200];
+    char receiveBuffer[PACKET_BUFFER_SIZE];
     while (serverRunning) {
         // Receive data from the client
         int rbyteCount = recv(clientSocket, receiveBuffer, sizeof(receiveBuffer) - 1, 0);
@@ -30,6 +32,20 @@ void handleClient(SOCKET clientSocket, std::string clientIP) {
             }
             break;
         }
+
+        // Action depends on the first byte
+        switch (receiveBuffer[0]) {
+            case PacketToServer::CREATE_ACCOUNT:
+                createAccountRequest account_request(receiveBuffer);
+                
+            break;
+            default:
+                goto breakout;
+        }
+
+        breakout:
+        std::cout << "Invalid packet received from IP " << clientIP << std::endl;
+        break;
         
         receiveBuffer[rbyteCount] = '\0'; // Null terminate the received data
         std::cout << "Received from " << clientIP << ": " << receiveBuffer << std::endl;
