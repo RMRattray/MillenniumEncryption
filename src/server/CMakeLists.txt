@@ -5,4 +5,5 @@ add_executable(millennium_server
 target_link_libraries(millennium_server PRIVATE 
     millennium_crypt
     sqlite
+    ws2_32
 )

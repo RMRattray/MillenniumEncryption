@@ -1,21 +1,13 @@
 #include <iostream>
 #include <sqlite3.h>
-#include <netinet/in.h> 
-#include <sys/socket.h> 
 #include <map>
 #include <thread>
 #include <vector>
 #include <mutex>
 #include <string>
 
-#ifdef __WIN32__
-# include <winsock2.h>
-# include <ws2tcpip.h>
-#else
-# include <sys/socket.h>
-# include <unistd.h>
-# include <arpa/inet.h>
-#endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
 // Global variables for managing clients
 std::map<std::string, SOCKET> clientSockets;
