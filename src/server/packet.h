@@ -1,7 +1,7 @@
 #ifndef MLNM_PACKET_H
 #define MLNM_PACKET_H
 
-#define PACKET_BUFFER_SIZE 256;
+#define PACKET_BUFFER_SIZE 256
 
 #include <string>
 
@@ -38,6 +38,6 @@ class createAccountResponse {
     public:
     bool success;
     std::string reason;
-}
+};
 
 #endif
