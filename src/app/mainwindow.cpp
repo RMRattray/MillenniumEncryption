@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "login.h"
 #include <QMainWindow>
 #include <QLineEdit>
 #include <QPushButton>
@@ -17,28 +18,15 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::showLoginWidget()
 {
-    loginWidget = new QWidget(this);
-    QVBoxLayout *loginLayout = new QVBoxLayout(loginWidget);
-    QLabel *userLabel = new QLabel("Username", loginWidget);
-    usernameEdit = new QLineEdit(loginWidget);
-    QLabel *passLabel = new QLabel("Password", loginWidget);
-    passwordEdit = new QLineEdit(loginWidget);
-    passwordEdit->setEchoMode(QLineEdit::Password);
-    loginButton = new QPushButton("Login", loginWidget);
-    loginLayout->addWidget(userLabel);
-    loginLayout->addWidget(usernameEdit);
-    loginLayout->addWidget(passLabel);
-    loginLayout->addWidget(passwordEdit);
-    loginLayout->addWidget(loginButton);
-    loginLayout->addStretch();
+    loginWidget = new LoginWidget(this);
     setCentralWidget(loginWidget);
-    connect(loginButton, &QPushButton::clicked, this, [this]() {
-        if (usernameEdit->text() == "name" && passwordEdit->text() == "word") {
-            showMainCentralWidget();
-        } else {
-            loginButton->setText("Try again");
-        }
-    });
+    // connect(loginButton, &QPushButton::clicked, this, [this]() {
+    //     if (usernameEdit->text() == "name" && passwordEdit->text() == "word") {
+    //         showMainCentralWidget();
+    //     } else {
+    //         loginButton->setText("Try again");
+    //     }
+    // });
 }
 
 void MainWindow::showMainCentralWidget()
