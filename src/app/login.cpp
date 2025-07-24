@@ -47,14 +47,18 @@ void LoginWidget::swapLoginPurpose() {
     if (creating_account) {
         loginButton->setText("Login");
         createAccountInstead->setText("Create new account");
+        creating_account = false;
     }
     else {
         loginButton->setText("Create account");
         createAccountInstead->setText("Return to login");
+        creating_account = true;
     }
 }
 
 void LoginWidget::login() {
+    loginButton->setText("Logging in");
+    std::cout << "Logging in\n";
     QAbstractSocket::SocketState s = sock->state();
     // if connecting from another click to the login button, return
     if (s == QAbstractSocket::SocketState::ConnectingState || QAbstractSocket::SocketState::HostLookupState) return;
