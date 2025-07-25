@@ -7,6 +7,7 @@
 #include <QTcpSocket>
 #include <QVBoxLayout>
 #include <QLabel>
+#include <QDebug>
 
 LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent) {
     // Login widgets
@@ -58,26 +59,28 @@ void LoginWidget::swapLoginPurpose() {
 
 void LoginWidget::login() {
     loginButton->setText("Logging in");
-    std::cout << "Logging in\n";
+    qDebug() << "Logging in";
     QAbstractSocket::SocketState s = sock->state();
     // if connecting from another click to the login button, return
-    if (s == QAbstractSocket::SocketState::ConnectingState || QAbstractSocket::SocketState::HostLookupState) return;
+    if (s == QAbstractSocket::SocketState::ConnectingState || s == QAbstractSocket::SocketState::HostLookupState) return;
     // if not connected, connect!
     if (s == QAbstractSocket::SocketState::UnconnectedState) {
-        sock->connectToHost("127.0.01", 1999);
+        qDebug() << "About to attempt to connect";
+        sock->connectToHost("127.0.0.1", 1999);
         if (sock->waitForConnected(3000))
-            std::cout << "Connected to server!\n";
+            qDebug() << "Connected to server!\n";
         else {
-            std::cout << "Failed to connect to server\n";
+            qDebug() << "Failed to connect to server\n";
         }
     }
     if (sock->state() != QAbstractSocket::SocketState::ConnectedState) {
-        std::cout << "Somehow not connected\n";
+        qDebug() << "Somehow not connected\n";
         return;
     }
-
+    qDebug() << "Made it this far";
     createAccountRequest req(usernameEdit->text().toStdString(), passwordEdit->text().toStdString());
     unsigned char packet[PACKET_BUFFER_SIZE];
     req.write_to_packet(packet);
     sock->write((char *)packet, PACKET_BUFFER_SIZE);
+    qDebug() << "Should be writing";
 }

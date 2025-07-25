@@ -86,7 +86,9 @@ void MillenniumServer::spin() {
         sockaddr_in clientAddr;
         int clientAddrLen = sizeof(clientAddr);
 
+        std::cout << "About to run the 'accept' function:\n";
         clientSocket = accept(serverSocket, reinterpret_cast<SOCKADDR*>(&clientAddr), &clientAddrLen);
+        std::cout << "I've run the 'accept' function\n";
         if (clientSocket == INVALID_SOCKET) {
             std::cout << "Accept failed: " << WSAGetLastError() << std::endl;
             continue;
@@ -154,7 +156,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
         // Action depends on the first byte
         switch (receiveBuffer[0]) {
             case PacketToServer::CREATE_ACCOUNT:
-                std::cout << "Recevied a packet requesting the creation of an account";
+                std::cout << "Received a packet requesting the creation of an account\n";
             break;
             default:
                 goto breakout;

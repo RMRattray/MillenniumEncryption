@@ -11,7 +11,7 @@ target_link_libraries(millennium_serpent PRIVATE
     millennium_server
 )
 
-set_target_properties(millennium_serpent PROPERTIES
-    WIN32_EXECUTABLE ON
-    MACOSX_BUNDLE ON
-)
+# set_target_properties(millennium_serpent PROPERTIES
+#     WIN32_EXECUTABLE ON
+#     MACOSX_BUNDLE ON
+# )
