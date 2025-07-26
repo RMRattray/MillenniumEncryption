@@ -5,7 +5,7 @@
 
 #include <string>
 
-enum PacketToServer {
+enum PacketToServerType {
     CREATE_ACCOUNT = 1,
     LOGIN,
     FRIEND_REQUEST_SEND,
@@ -14,7 +14,7 @@ enum PacketToServer {
     MESSAGE_ACKNOWLEDGE
 };
 
-enum PacketFromServer {
+enum PacketFromServerType {
     ACCOUNT_RESULT = 1,
     LOGIN_RESULT,
     FRIEND_STATUS_UPDATE,
@@ -24,20 +24,36 @@ enum PacketFromServer {
     MESSAGE_RESPONSE
 };
 
-class createAccountRequest {
+class packetToServer {
+    public:
+    virtual int write_to_packet(unsigned char * buffer) { return 0; }
+    ~packetToServer() { }
+    protected:
+    PacketToServerType type;
+};
+
+class packetFromServer {
+    public:
+    virtual int write_to_packet(unsigned char * buffer) { return 0; }
+    ~packetFromServer() { }
+    protected:
+    PacketFromServerType type;
+};
+
+class createAccountRequest : public packetToServer {
     public:
     createAccountRequest(std::string user_name, std::string password);
     createAccountRequest(unsigned char * buffer);
-    void write_to_packet(unsigned char * buffer);
+    int write_to_packet(unsigned char * buffer);
     std::string user_name;
     std::string password;
 };
 
-class createAccountResponse {
+class createAccountResponse : public packetFromServer {
     public:
     createAccountResponse(bool success, std::string reason);
     createAccountResponse(unsigned char * buffer);
-    void write_to_packet(unsigned char * buffer);
+    int write_to_packet(unsigned char * buffer);
     bool success;
     std::string reason;
 };

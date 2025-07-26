@@ -77,21 +77,24 @@ void LoginWidget::login() {
 }
 
 void LoginWidget::handlePacket(unsigned char * packet) {
+    packetFromServer * resp;
+    createAccountResponse * car = NULL;
     qDebug() << "Login widget received a packet";
     switch (*packet) {
-        case PacketFromServer::ACCOUNT_RESULT:
-            createAccountResponse * resp;
+        case PacketFromServerType::ACCOUNT_RESULT:
             resp = new createAccountResponse(packet);
+            car = dynamic_cast<createAccountResponse *>(resp);
             qDebug() << "Processing packet";
-            if (resp->success) {
+            if (car->success) {
                 qDebug() << "Should be logging in";
                 logged_in();
             }
             else {
-                message->setText(QString::fromStdString("Failed to create account: " + resp->reason));
+                message->setText(QString::fromStdString("Failed to create account: " + car->reason));
             }
         break;
         default:
         qDebug() << "Invalid packet sent to login widget";
     }
+    delete resp;
 }

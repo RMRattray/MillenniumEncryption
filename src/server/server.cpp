@@ -157,6 +157,9 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
     std::string db_statement;
     char * zErrMsg;
 
+    packetToServer * req;
+    packetFromServer * resp;
+
     while (serverRunning) {
         // Receive data from the client
         int rbyteCount = recv(clientSocket, (char *)receiveBuffer, sizeof(receiveBuffer) - 1, 0);
@@ -169,17 +172,18 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
             break;
         }
 
+        createAccountRequest * car = NULL;
+
         // Action depends on the first byte
         switch (receiveBuffer[0]) {
-            case PacketToServer::CREATE_ACCOUNT:
+            case PacketToServerType::CREATE_ACCOUNT:
                 std::cout << "Received a packet requesting the creation of an account ";
-                createAccountRequest * req;
                 req = new createAccountRequest(receiveBuffer);
-                std::cout << "with the user name:  '" << req->user_name << "' and the password:  '" << req->password << "'.\n";
+                car = dynamic_cast<createAccountRequest *>(req);
+                std::cout << "with the user name:  '" << car->user_name << "' and the password:  '" << car->password << "'.\n";
                 // (db, "CREATE TABLE IF NOT EXISTS users (user_name TEXT, pass_hash TEXT, hash_count INTEGER);", NULL, NULL, &zErrMsg)
-                db_statement = "SELECT COUNT (*) FROM users WHERE user_name = '" + req->user_name + "';"; // Danger - user name better not contain apostrophes
+                db_statement = "SELECT COUNT (*) FROM users WHERE user_name = '" + car->user_name + "';"; // Danger - user name better not contain apostrophes
                 int taken;
-                createAccountResponse * resp;
                 if (sqlite3_exec(db, db_statement.c_str(), countCallback, &taken, &zErrMsg) != SQLITE_OK) {
                     std::cout << "Error in SQLite:  " << std::string(zErrMsg);
                     sqlite3_free(zErrMsg);
@@ -191,7 +195,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                         resp = new createAccountResponse(false, "User name was taken");
                     }
                     else { // TODO: actually hash the password
-                        db_statement = "INSERT INTO users (user_name, pass_hash, hash_count) VALUES ('" + req->user_name + "','" + req->password + "', 0)";
+                        db_statement = "INSERT INTO users (user_name, pass_hash, hash_count) VALUES ('" + car->user_name + "','" + car->password + "', 0)";
                         if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) {
                             std::cout << "Error in SQLite:  " << std::string(zErrMsg);
                             sqlite3_free(zErrMsg);
@@ -202,13 +206,13 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                         }
                     }
                 }
-                resp->write_to_packet(sendBuffer);
-                free(resp);
             break;
             default:
                 std::cout << "Invalid packet received from IP " << clientIP << std::endl;
                 goto close;
         }
+
+        delete req;
         
         // receiveBuffer[rbyteCount] = '\0'; // Null terminate the received data
         // std::cout << "Received from " << clientIP << ": " << receiveBuffer << std::endl;
@@ -218,11 +222,23 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
 
         std::cout << "All good, about to send packet\n";
 
+        while (resp->write_to_packet(sendBuffer)) {
+            int sbyteCount = send(clientSocket, (char *)sendBuffer, PACKET_BUFFER_SIZE, 0);
+            if (sbyteCount == SOCKET_ERROR) {
+                std::cout << "Error sending to client " << clientIP << ": " << WSAGetLastError() << std::endl;
+                delete resp;
+                goto close;
+            }
+        }
         int sbyteCount = send(clientSocket, (char *)sendBuffer, PACKET_BUFFER_SIZE, 0);
         if (sbyteCount == SOCKET_ERROR) {
             std::cout << "Error sending to client " << clientIP << ": " << WSAGetLastError() << std::endl;
-            break;
+            delete resp;
+            goto close;
         }
+
+        delete resp;
+
     }
 
     close:

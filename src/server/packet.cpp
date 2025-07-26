@@ -6,43 +6,50 @@ createAccountRequest::createAccountRequest(std::string name, std::string pwd) {
     if (name.size() + pwd.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("Username or password is too long");
     user_name = name;
     password = pwd;
+    type = PacketToServerType::CREATE_ACCOUNT;
 }
 
 createAccountRequest::createAccountRequest(unsigned char * buffer) {
-    if (*buffer != PacketToServer::CREATE_ACCOUNT) throw std::runtime_error("Attempting to create account from wrong sort of packet");
+    type = PacketToServerType::CREATE_ACCOUNT;
+    if (*buffer != type) throw std::runtime_error("Attempting to create account from wrong sort of packet");
     if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
     user_name = std::string((char *)buffer + 1);
     if (user_name.size() > PACKET_BUFFER_SIZE - 4) throw std::runtime_error("User name is too long");
     password = std::string((char *)buffer + 2 + user_name.size());
 }
 
-void createAccountRequest::write_to_packet(unsigned char * buffer) {
+int createAccountRequest::write_to_packet(unsigned char * buffer) {
     if (user_name.size() + password.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("Username or password is too long");
-    *buffer = PacketToServer::CREATE_ACCOUNT;
+    *buffer = type;
     user_name.copy((char *)buffer + 1, user_name.size());
     *(buffer + 1 + user_name.size()) = 0;
     password.copy((char *)buffer + 2 + user_name.size(), password.size());
     *(buffer + 2 + user_name.size() + password.size()) = 0;
+    return 0;
 }
 
 createAccountResponse::createAccountResponse(bool s, std::string r) {
     if (reason.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("Reason is too long");
     success = s;
     reason = r;
+    type = PacketFromServerType::ACCOUNT_RESULT;
 }
 
 createAccountResponse::createAccountResponse(unsigned char * buffer) {
-    if (*buffer != PacketFromServer::ACCOUNT_RESULT) throw std::runtime_error("Attempting to read account response from wrong sort of packet");
+    type = PacketFromServerType::ACCOUNT_RESULT;
+    if (*buffer != type) throw std::runtime_error("Attempting to read account response from wrong sort of packet");
     if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
     success = (bool)(*(buffer + 1));
     reason = std::string((char *)buffer + 2);
+
 }
 
-void createAccountResponse::write_to_packet(unsigned char * buffer) {
+int createAccountResponse::write_to_packet(unsigned char * buffer) {
     if (reason.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("Reason is too long");
-    *buffer = PacketFromServer::ACCOUNT_RESULT;
+    *buffer = type;
     *(buffer + 1) = success;
     reason.copy((char *)buffer + 2, reason.size());
     *(buffer + 2 + reason.size()) = 0;
+    return 0;
 }
 

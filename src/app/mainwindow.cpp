@@ -98,7 +98,7 @@ void MainWindow::handlePacket() {
     }
     else {
         switch (*packet) {
-            case PacketFromServer::ACCOUNT_RESULT:
+            case PacketFromServerType::ACCOUNT_RESULT:
             loginWidget->handlePacket(packet);
             break;
             default:
