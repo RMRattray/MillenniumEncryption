@@ -25,3 +25,24 @@ void createAccountRequest::write_to_packet(unsigned char * buffer) {
     *(buffer + 2 + user_name.size() + password.size()) = 0;
 }
 
+createAccountResponse::createAccountResponse(bool s, std::string r) {
+    if (reason.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("Reason is too long");
+    success = s;
+    reason = r;
+}
+
+createAccountResponse::createAccountResponse(unsigned char * buffer) {
+    if (*buffer != PacketFromServer::ACCOUNT_RESULT) throw std::runtime_error("Attempting to read account response from wrong sort of packet");
+    if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
+    success = (bool)(*(buffer + 1));
+    reason = std::string((char *)buffer + 2);
+}
+
+void createAccountResponse::write_to_packet(unsigned char * buffer) {
+    if (reason.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("Reason is too long");
+    *buffer = PacketFromServer::ACCOUNT_RESULT;
+    *(buffer + 1) = success;
+    reason.copy((char *)buffer + 2, reason.size());
+    *(buffer + 2 + reason.size()) = 0;
+}
+

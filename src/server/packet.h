@@ -29,13 +29,15 @@ class createAccountRequest {
     createAccountRequest(std::string user_name, std::string password);
     createAccountRequest(unsigned char * buffer);
     void write_to_packet(unsigned char * buffer);
-    private:
     std::string user_name;
     std::string password;
 };
 
 class createAccountResponse {
     public:
+    createAccountResponse(bool success, std::string reason);
+    createAccountResponse(unsigned char * buffer);
+    void write_to_packet(unsigned char * buffer);
     bool success;
     std::string reason;
 };

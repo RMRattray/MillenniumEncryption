@@ -137,10 +137,26 @@ MillenniumServer::~MillenniumServer() {
     return;
 }
 
+int countCallback(void *data, int argc, char **argv, char **azColName) {
+    if (argc > 0 && argv[0]) {
+        *(int*)data = atoi(argv[0]);
+    }
+    return 0;
+}
+
 void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
     std::cout << "New client connected from: " << clientIP << std::endl;
 
-    unsigned char receiveBuffer[PACKET_BUFFER_SIZE];
+    unsigned char receiveBuffer[PACKET_BUFFER_SIZE + 1];
+    receiveBuffer[PACKET_BUFFER_SIZE] = 0;
+
+    unsigned char sendBuffer[PACKET_BUFFER_SIZE + 1];
+    sendBuffer[PACKET_BUFFER_SIZE] = 0;
+
+    int db_response;
+    std::string db_statement;
+    char * zErrMsg;
+
     while (serverRunning) {
         // Receive data from the client
         int rbyteCount = recv(clientSocket, (char *)receiveBuffer, sizeof(receiveBuffer) - 1, 0);
@@ -156,27 +172,60 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
         // Action depends on the first byte
         switch (receiveBuffer[0]) {
             case PacketToServer::CREATE_ACCOUNT:
-                std::cout << "Received a packet requesting the creation of an account\n";
+                std::cout << "Received a packet requesting the creation of an account ";
+                createAccountRequest * req;
+                req = new createAccountRequest(receiveBuffer);
+                std::cout << "with the user name:  '" << req->user_name << "' and the password:  '" << req->password << "'.\n";
+                // (db, "CREATE TABLE IF NOT EXISTS users (user_name TEXT, pass_hash TEXT, hash_count INTEGER);", NULL, NULL, &zErrMsg)
+                db_statement = "SELECT COUNT (*) FROM users WHERE user_name = '" + req->user_name + "';"; // Danger - user name better not contain apostrophes
+                int taken;
+                createAccountResponse * resp;
+                if (sqlite3_exec(db, db_statement.c_str(), countCallback, &taken, &zErrMsg) != SQLITE_OK) {
+                    std::cout << "Error in SQLite:  " << std::string(zErrMsg);
+                    sqlite3_free(zErrMsg);
+                    resp = new createAccountResponse(false, "Internal database issue");
+                }
+                else {
+                    if (taken) {
+                    std::cout << "User name was taken";
+                        resp = new createAccountResponse(false, "User name was taken");
+                    }
+                    else { // TODO: actually hash the password
+                        db_statement = "INSERT INTO users (user_name, pass_hash, hash_count) VALUES ('" + req->user_name + "','" + req->password + "', 0)";
+                        if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) {
+                            std::cout << "Error in SQLite:  " << std::string(zErrMsg);
+                            sqlite3_free(zErrMsg);
+                            resp = new createAccountResponse(false, "Internal database issue");
+                        }
+                        else {
+                            resp = new createAccountResponse(true, "Database worked and didn't contain username");
+                        }
+                    }
+                }
+                resp->write_to_packet(sendBuffer);
+                free(resp);
             break;
             default:
-                goto breakout;
+                std::cout << "Invalid packet received from IP " << clientIP << std::endl;
+                goto close;
         }
-
-        breakout:
-        std::cout << "Invalid packet received from IP " << clientIP << std::endl;
-        break;
         
-        receiveBuffer[rbyteCount] = '\0'; // Null terminate the received data
-        std::cout << "Received from " << clientIP << ": " << receiveBuffer << std::endl;
+        // receiveBuffer[rbyteCount] = '\0'; // Null terminate the received data
+        // std::cout << "Received from " << clientIP << ": " << receiveBuffer << std::endl;
         
         // Send a response back to the client
-        std::string response = "Server received: " + std::string((char *)receiveBuffer);
-        int sbyteCount = send(clientSocket, response.c_str(), response.length(), 0);
+        // std::string response = "Server received: " + std::string((char *)receiveBuffer);
+
+        std::cout << "All good, about to send packet\n";
+
+        int sbyteCount = send(clientSocket, (char *)sendBuffer, PACKET_BUFFER_SIZE, 0);
         if (sbyteCount == SOCKET_ERROR) {
             std::cout << "Error sending to client " << clientIP << ": " << WSAGetLastError() << std::endl;
             break;
         }
     }
+
+    close:
     
     // Clean up client connection
     {
