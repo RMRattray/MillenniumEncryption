@@ -1,3 +1,6 @@
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
 #include "login.h"
 #include <QMainWindow>
 #include <QWidget>
@@ -18,7 +21,7 @@ public:
 
 private:
     // Login screen widgets
-    QWidget *loginWidget;
+    LoginWidget *loginWidget;
     QLineEdit *usernameEdit;
     QLineEdit *passwordEdit;
     QPushButton *loginButton;
@@ -34,6 +37,11 @@ private:
     QLineEdit *rightTextBox;
     QPushButton *sendButton;
 
+    QTcpSocket *sock;
+
     void showLoginWidget();
     void showMainCentralWidget();
+    void handlePacket();
 };
+
+#endif

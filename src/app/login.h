@@ -5,14 +5,18 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QTcpSocket>
+#include <QLabel>
 
 class LoginWidget : public QWidget {
     Q_OBJECT
 
 public:
-    explicit LoginWidget(QWidget *parent = nullptr);
+    explicit LoginWidget(QWidget *parent = nullptr, QTcpSocket * s = nullptr);
     ~LoginWidget();
-    QTcpSocket *sock;    
+    QTcpSocket *sock;
+    void handlePacket(unsigned char * packet);
+signals:
+    void logged_in();
 private slots:
     void swapLoginPurpose();
     void login();
@@ -22,6 +26,7 @@ private:
     QPushButton *createAccountInstead;
     bool creating_account;
     QPushButton *loginButton;
+    QLabel *message;
 };
 
 #endif

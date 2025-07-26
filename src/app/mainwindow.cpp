@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "login.h"
+#include "packet.h"
 #include <QMainWindow>
 #include <QLineEdit>
 #include <QPushButton>
@@ -9,17 +10,29 @@
 #include <QVBoxLayout>
 #include <QIcon>
 #include <QSpacerItem>
+#include <QTcpSocket>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    sock = new QTcpSocket();
+    QAbstractSocket::SocketState s = sock->state();
+    qDebug() << "About to attempt to connect";
+    sock->connectToHost("127.0.0.1", 1999);
+    if (sock->waitForConnected(3000))
+        qDebug() << "Connected to server!\n";
+    else {
+        qDebug() << "Failed to connect to server\n";
+    }
     showLoginWidget();
+    connect(sock, &QTcpSocket::readyRead, this, &MainWindow::handlePacket);
 }
 
 void MainWindow::showLoginWidget()
 {
-    loginWidget = new LoginWidget(this);
+    loginWidget = new LoginWidget(this, sock);
     setCentralWidget(loginWidget);
+    connect(loginWidget, &LoginWidget::logged_in, this, &MainWindow::showMainCentralWidget);
     // connect(loginButton, &QPushButton::clicked, this, [this]() {
     //     if (usernameEdit->text() == "name" && passwordEdit->text() == "word") {
     //         showMainCentralWidget();
@@ -74,6 +87,25 @@ void MainWindow::showMainCentralWidget()
     mainLayout->setStretch(0, 0);
     mainLayout->setStretch(1, 1);
     setCentralWidget(mainCentralWidget);
+}
+
+void MainWindow::handlePacket() {
+    qDebug() << "Received a packet";
+    unsigned char packet[PACKET_BUFFER_SIZE + 1];
+    packet[PACKET_BUFFER_SIZE] = 0;
+    if (sock->read((char *)packet, PACKET_BUFFER_SIZE) < 1) {
+        qDebug() << "An error occurred";
+    }
+    else {
+        switch (*packet) {
+            case PacketFromServer::ACCOUNT_RESULT:
+            loginWidget->handlePacket(packet);
+            break;
+            default:
+            qDebug() << "Received invalid packet";
+        }
+    }
+
 }
 
 MainWindow::~MainWindow()

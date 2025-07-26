@@ -8,8 +8,9 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QDebug>
+#include <QString>
 
-LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent) {
+LoginWidget::LoginWidget(QWidget *parent, QTcpSocket *s) : QWidget(parent) {
     // Login widgets
     QVBoxLayout *loginLayout = new QVBoxLayout(this);
     QLabel *userLabel = new QLabel("Username", this);
@@ -21,7 +22,8 @@ LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent) {
     createAccountInstead = new QPushButton("Create new account", this);
     createAccountInstead->setFlat(true);
     creating_account = false;
-    sock = new QTcpSocket(parent); // do not delete if this widget is deleted
+    message = new QLabel("", this);
+    sock = s; // do not delete if this widget is deleted
 
     // Layout is one big column for now
     loginLayout->addStretch();
@@ -34,6 +36,7 @@ LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent) {
     loginLayout->addWidget(loginButton);
     loginLayout->addSpacing(5);
     loginLayout->addWidget(createAccountInstead);
+    loginLayout->addWidget(message);
     loginLayout->addStretch();
 
     connect(createAccountInstead, SIGNAL(clicked()), this, SLOT(swapLoginPurpose()));
@@ -60,19 +63,7 @@ void LoginWidget::swapLoginPurpose() {
 void LoginWidget::login() {
     loginButton->setText("Logging in");
     qDebug() << "Logging in";
-    QAbstractSocket::SocketState s = sock->state();
-    // if connecting from another click to the login button, return
-    if (s == QAbstractSocket::SocketState::ConnectingState || s == QAbstractSocket::SocketState::HostLookupState) return;
-    // if not connected, connect!
-    if (s == QAbstractSocket::SocketState::UnconnectedState) {
-        qDebug() << "About to attempt to connect";
-        sock->connectToHost("127.0.0.1", 1999);
-        if (sock->waitForConnected(3000))
-            qDebug() << "Connected to server!\n";
-        else {
-            qDebug() << "Failed to connect to server\n";
-        }
-    }
+    
     if (sock->state() != QAbstractSocket::SocketState::ConnectedState) {
         qDebug() << "Somehow not connected\n";
         return;
@@ -82,5 +73,25 @@ void LoginWidget::login() {
     unsigned char packet[PACKET_BUFFER_SIZE];
     req.write_to_packet(packet);
     sock->write((char *)packet, PACKET_BUFFER_SIZE);
-    qDebug() << "Should be writing";
+    qDebug() << "Should be writing";    
+}
+
+void LoginWidget::handlePacket(unsigned char * packet) {
+    qDebug() << "Login widget received a packet";
+    switch (*packet) {
+        case PacketFromServer::ACCOUNT_RESULT:
+            createAccountResponse * resp;
+            resp = new createAccountResponse(packet);
+            qDebug() << "Processing packet";
+            if (resp->success) {
+                qDebug() << "Should be logging in";
+                logged_in();
+            }
+            else {
+                message->setText(QString::fromStdString("Failed to create account: " + resp->reason));
+            }
+        break;
+        default:
+        qDebug() << "Invalid packet sent to login widget";
+    }
 }
