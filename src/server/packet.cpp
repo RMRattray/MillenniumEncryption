@@ -78,8 +78,10 @@ int friendRequestSend::write_to_packet(unsigned char * buffer) {
 }
 
 // FriendRequestAcknowledge implementations
-friendRequestAcknowledge::friendRequestAcknowledge(FriendRequestResponse resp) {
-    response = resp;
+friendRequestAcknowledge::friendRequestAcknowledge(std::string to_, std::string from_, FriendRequestResponse r_) {
+    to = to_;
+    from = from_;
+    response = r_;
     type = PacketToServerType::FRIEND_REQUEST_ACKNOWLEDGE;
 }
 
@@ -87,12 +89,21 @@ friendRequestAcknowledge::friendRequestAcknowledge(unsigned char * buffer) {
     type = PacketToServerType::FRIEND_REQUEST_ACKNOWLEDGE;
     if (*buffer != type) throw std::runtime_error("Attempting to read friend request acknowledge from wrong sort of packet");
     if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
-    response = static_cast<FriendRequestResponse>(*(buffer + 1));
+    to = std::string((char *)buffer + 1);
+    if (to.size() > PACKET_BUFFER_SIZE - 6) throw std::runtime_error("To username is too long");
+    from = std::string((char *)buffer + 2 + to.size());
+    if (from.size() > PACKET_BUFFER_SIZE - 6 - to.size()) throw std::runtime_error("From username is too long");
+    response = static_cast<FriendRequestResponse>(*(buffer + 3 + to.size() + from.size()));
 }
 
 int friendRequestAcknowledge::write_to_packet(unsigned char * buffer) {
+    if (to.size() + from.size() > PACKET_BUFFER_SIZE - 4) throw std::runtime_error("To or from username is too long");
     *buffer = type;
-    *(buffer + 1) = static_cast<unsigned char>(response);
+    to.copy((char *)buffer + 1, to.size());
+    *(buffer + 1 + to.size()) = 0;
+    from.copy((char *)buffer + 2 + to.size(), from.size());
+    *(buffer + 2 + to.size() + from.size()) = 0;
+    *(buffer + 3 + to.size() + from.size()) = static_cast<unsigned char>(response);
     return 0;
 }
 
@@ -120,28 +131,6 @@ int messageSend::write_to_packet(unsigned char * buffer) {
     *(buffer + 1 + message.size()) = 0;
     recipient.copy((char *)buffer + 2 + message.size(), recipient.size());
     *(buffer + 2 + message.size() + recipient.size()) = 0;
-    return 0;
-}
-
-// MessageAcknowledge implementations
-messageAcknowledge::messageAcknowledge(std::string recip) {
-    if (recip.size() > PACKET_BUFFER_SIZE - 2) throw std::runtime_error("Recipient is too long");
-    recipient = recip;
-    type = PacketToServerType::MESSAGE_ACKNOWLEDGE;
-}
-
-messageAcknowledge::messageAcknowledge(unsigned char * buffer) {
-    type = PacketToServerType::MESSAGE_ACKNOWLEDGE;
-    if (*buffer != type) throw std::runtime_error("Attempting to read message acknowledge from wrong sort of packet");
-    if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
-    recipient = std::string((char *)buffer + 1);
-}
-
-int messageAcknowledge::write_to_packet(unsigned char * buffer) {
-    if (recipient.size() > PACKET_BUFFER_SIZE - 2) throw std::runtime_error("Recipient is too long");
-    *buffer = type;
-    recipient.copy((char *)buffer + 1, recipient.size());
-    *(buffer + 1 + recipient.size()) = 0;
     return 0;
 }
 
@@ -222,9 +211,10 @@ int friendStatusUpdate::write_to_packet(unsigned char * buffer) {
 }
 
 // FriendRequestForward implementations
-friendRequestForward::friendRequestForward(std::string uname) {
-    if (uname.size() > PACKET_BUFFER_SIZE - 2) throw std::runtime_error("Username is too long");
-    username = uname;
+friendRequestForward::friendRequestForward(std::string to_, std::string from_) {
+    if (to_.size() + from_.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("To or from username is too long");
+    to = to_;
+    from = from_;
     type = PacketFromServerType::FRIEND_REQUEST_FORWARD;
 }
 
@@ -232,65 +222,48 @@ friendRequestForward::friendRequestForward(unsigned char * buffer) {
     type = PacketFromServerType::FRIEND_REQUEST_FORWARD;
     if (*buffer != type) throw std::runtime_error("Attempting to read friend request forward from wrong sort of packet");
     if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
-    username = std::string((char *)buffer + 1);
+    to = std::string((char *)buffer + 1);
+    if (to.size() > PACKET_BUFFER_SIZE - 4) throw std::runtime_error("To username is too long");
+    from = std::string((char *)buffer + 2 + to.size());
 }
 
 int friendRequestForward::write_to_packet(unsigned char * buffer) {
-    if (username.size() > PACKET_BUFFER_SIZE - 2) throw std::runtime_error("Username is too long");
+    if (to.size() + from.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("To or from username is too long");
     *buffer = type;
-    username.copy((char *)buffer + 1, username.size());
-    *(buffer + 1 + username.size()) = 0;
+    to.copy((char *)buffer + 1, to.size());
+    *(buffer + 1 + to.size()) = 0;
+    from.copy((char *)buffer + 2 + to.size(), from.size());
+    *(buffer + 2 + to.size() + from.size()) = 0;
     return 0;
 }
 
 // FriendRequestResponse implementations
-friendRequestResponse::friendRequestResponse() {
+friendRequestResponse::friendRequestResponse(std::string to_, std::string from_, FriendRequestResponse r_) {
     type = PacketFromServerType::FRIEND_REQUEST_RESPONSE;
+    to = to_;
+    from = from_;
+    response = r_;
 }
 
 friendRequestResponse::friendRequestResponse(unsigned char * buffer) {
     type = PacketFromServerType::FRIEND_REQUEST_RESPONSE;
     if (*buffer != type) throw std::runtime_error("Attempting to read friend request response from wrong sort of packet");
     if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
+    to = std::string((char *)buffer + 1);
+    if (to.size() > PACKET_BUFFER_SIZE - 6) throw std::runtime_error("To username is too long");
+    from = std::string((char *)buffer + 2 + to.size());
+    if (from.size() > PACKET_BUFFER_SIZE - 6 - to.size()) throw std::runtime_error("From username is too long");
+    response = static_cast<FriendRequestResponse>(*(buffer + 3 + to.size() + from.size()));
 }
 
 int friendRequestResponse::write_to_packet(unsigned char * buffer) {
+    if (to.size() + from.size() > PACKET_BUFFER_SIZE - 4) throw std::runtime_error("To or from username is too long");
     *buffer = type;
-    return 0;
-}
-
-// FriendRequestAcknowledgeForward implementations
-friendRequestAcknowledgeForward::friendRequestAcknowledgeForward(FriendRequestResponse resp) {
-    response = resp;
-    type = PacketFromServerType::FRIEND_REQUEST_ACKNOWLEDGE_FORWARD;
-}
-
-friendRequestAcknowledgeForward::friendRequestAcknowledgeForward(unsigned char * buffer) {
-    type = PacketFromServerType::FRIEND_REQUEST_ACKNOWLEDGE_FORWARD;
-    if (*buffer != type) throw std::runtime_error("Attempting to read friend request acknowledge forward from wrong sort of packet");
-    if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
-    response = static_cast<FriendRequestResponse>(*(buffer + 1));
-}
-
-int friendRequestAcknowledgeForward::write_to_packet(unsigned char * buffer) {
-    *buffer = type;
-    *(buffer + 1) = static_cast<unsigned char>(response);
-    return 0;
-}
-
-// FriendRequestAcknowledgeResponse implementations
-friendRequestAcknowledgeResponse::friendRequestAcknowledgeResponse() {
-    type = PacketFromServerType::FRIEND_REQUEST_ACKNOWLEDGE_RESPONSE;
-}
-
-friendRequestAcknowledgeResponse::friendRequestAcknowledgeResponse(unsigned char * buffer) {
-    type = PacketFromServerType::FRIEND_REQUEST_ACKNOWLEDGE_RESPONSE;
-    if (*buffer != type) throw std::runtime_error("Attempting to read friend request acknowledge response from wrong sort of packet");
-    if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
-}
-
-int friendRequestAcknowledgeResponse::write_to_packet(unsigned char * buffer) {
-    *buffer = type;
+    to.copy((char *)buffer + 1, to.size());
+    *(buffer + 1 + to.size()) = 0;
+    from.copy((char *)buffer + 2 + to.size(), from.size());
+    *(buffer + 2 + to.size() + from.size()) = 0;
+    *(buffer + 3 + to.size() + from.size()) = static_cast<unsigned char>(response);
     return 0;
 }
 
@@ -322,9 +295,8 @@ int messageForward::write_to_packet(unsigned char * buffer) {
 }
 
 // MessageResponse implementations
-messageResponse::messageResponse(std::string send) {
-    if (send.size() > PACKET_BUFFER_SIZE - 2) throw std::runtime_error("Sender is too long");
-    sender = send;
+messageResponse::messageResponse(bool sent_) {
+    sent = sent_;
     type = PacketFromServerType::MESSAGE_RESPONSE;
 }
 
@@ -332,14 +304,12 @@ messageResponse::messageResponse(unsigned char * buffer) {
     type = PacketFromServerType::MESSAGE_RESPONSE;
     if (*buffer != type) throw std::runtime_error("Attempting to read message response from wrong sort of packet");
     if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
-    sender = std::string((char *)buffer + 1);
+    sent = (bool)(*(buffer + 1));
 }
 
 int messageResponse::write_to_packet(unsigned char * buffer) {
-    if (sender.size() > PACKET_BUFFER_SIZE - 2) throw std::runtime_error("Sender is too long");
     *buffer = type;
-    sender.copy((char *)buffer + 1, sender.size());
-    *(buffer + 1 + sender.size()) = 0;
+    *(buffer + 1) = sent;
     return 0;
 }
 

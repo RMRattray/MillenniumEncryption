@@ -10,8 +10,7 @@ enum PacketToServerType {
     LOGIN_REQUEST,
     FRIEND_REQUEST_SEND,
     FRIEND_REQUEST_ACKNOWLEDGE,
-    MESSAGE_SEND,
-    MESSAGE_ACKNOWLEDGE
+    MESSAGE_SEND
 };
 
 enum PacketFromServerType {
@@ -20,8 +19,6 @@ enum PacketFromServerType {
     FRIEND_STATUS_UPDATE,
     FRIEND_REQUEST_FORWARD,
     FRIEND_REQUEST_RESPONSE,
-    FRIEND_REQUEST_ACKNOWLEDGE_FORWARD,
-    FRIEND_REQUEST_ACKNOWLEDGE_RESPONSE,
     MESSAGE_FORWARD,
     MESSAGE_RESPONSE
 };
@@ -29,7 +26,10 @@ enum PacketFromServerType {
 enum FriendRequestResponse {
     ACCEPT = 1,
     REJECT,
-    HIDE
+    HIDE,
+    DOES_NOT_EXIST,
+    PENDING,
+    DATABASE_ERROR
 };
 
 enum FriendStatus {
@@ -82,9 +82,11 @@ class friendRequestSend : public packetToServer {
 
 class friendRequestAcknowledge : public packetToServer {
     public:
-    friendRequestAcknowledge(FriendRequestResponse response);
+    friendRequestAcknowledge(std::string to, std::string from, FriendRequestResponse response);
     friendRequestAcknowledge(unsigned char * buffer);
     int write_to_packet(unsigned char * buffer);
+    std::string to;
+    std::string from;
     FriendRequestResponse response;
 };
 
@@ -94,14 +96,6 @@ class messageSend : public packetToServer {
     messageSend(unsigned char * buffer);
     int write_to_packet(unsigned char * buffer);
     std::string message;
-    std::string recipient;
-};
-
-class messageAcknowledge : public packetToServer {
-    public:
-    messageAcknowledge(std::string recipient);
-    messageAcknowledge(unsigned char * buffer);
-    int write_to_packet(unsigned char * buffer);
     std::string recipient;
 };
 
@@ -135,32 +129,21 @@ class friendStatusUpdate : public packetFromServer {
 
 class friendRequestForward : public packetFromServer {
     public:
-    friendRequestForward(std::string username);
+    friendRequestForward(std::string to, std::string from);
     friendRequestForward(unsigned char * buffer);
     int write_to_packet(unsigned char * buffer);
-    std::string username;
+    std::string to;
+    std::string from;
 };
 
 class friendRequestResponse : public packetFromServer {
     public:
-    friendRequestResponse();
+    friendRequestResponse(std::string to, std::string from, FriendRequestResponse response);
     friendRequestResponse(unsigned char * buffer);
     int write_to_packet(unsigned char * buffer);
-};
-
-class friendRequestAcknowledgeForward : public packetFromServer {
-    public:
-    friendRequestAcknowledgeForward(FriendRequestResponse response);
-    friendRequestAcknowledgeForward(unsigned char * buffer);
-    int write_to_packet(unsigned char * buffer);
+    std::string to;
+    std::string from;
     FriendRequestResponse response;
-};
-
-class friendRequestAcknowledgeResponse : public packetFromServer {
-    public:
-    friendRequestAcknowledgeResponse();
-    friendRequestAcknowledgeResponse(unsigned char * buffer);
-    int write_to_packet(unsigned char * buffer);
 };
 
 class messageForward : public packetFromServer {
@@ -174,10 +157,10 @@ class messageForward : public packetFromServer {
 
 class messageResponse : public packetFromServer {
     public:
-    messageResponse(std::string sender);
+    messageResponse(bool sent);
     messageResponse(unsigned char * buffer);
     int write_to_packet(unsigned char * buffer);
-    std::string sender;
+    bool sent;
 };
 
 #endif

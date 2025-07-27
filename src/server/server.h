@@ -8,6 +8,8 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
+#include "packet.h"
+
 class MillenniumServer{
 
     public:
@@ -17,6 +19,7 @@ class MillenniumServer{
 
     private:
     void handleClient(SOCKET, std::string);
+    void sendOutPacket(std::string to, std::shared_ptr<packetFromServer> f);
 
     sqlite3 *db;
     
@@ -26,7 +29,8 @@ class MillenniumServer{
     sockaddr_in service;
     
     std::mutex clientMutex; // Mutex for accessing the below
-    std::vector<std::thread> clientThreads;
-    std::map<std::string, SOCKET> clientSockets;
-    std::map<std::string, std::string> clientIPs;
+    std::vector<std::thread> clientThreads; // list of threads
+    std::map<std::string, SOCKET> clientSockets; // list of sockets by IP address
+    std::map<std::string, std::string> clientIPs; // list of IP addresses by user name
+    std::map<std::string, std::shared_ptr<std::mutex>> socketMutexes; // mutexes for each socket, by IP address
 };
