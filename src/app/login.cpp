@@ -61,37 +61,38 @@ void LoginWidget::swapLoginPurpose() {
 }
 
 void LoginWidget::login() {
-    loginButton->setText("Logging in");
-    qDebug() << "Logging in";
-    
     if (sock->state() != QAbstractSocket::SocketState::ConnectedState) {
-        qDebug() << "Somehow not connected\n";
+        qDebug() << "Unable to log in - not connected\n";
         return;
     }
-    qDebug() << "Made it this far";
-    createAccountRequest req(usernameEdit->text().toStdString(), passwordEdit->text().toStdString());
     unsigned char packet[PACKET_BUFFER_SIZE];
-    req.write_to_packet(packet);
+    packetToServer * req;
+    if (creating_account) req = new createAccountRequest(usernameEdit->text().toStdString(), passwordEdit->text().toStdString());
+    else req = new loginRequest(usernameEdit->text().toStdString(), passwordEdit->text().toStdString());    
+    req->write_to_packet(packet);
     sock->write((char *)packet, PACKET_BUFFER_SIZE);
-    qDebug() << "Should be writing";    
+    qDebug() << "Should have sent packet";
+    delete req;    
 }
 
 void LoginWidget::handlePacket(unsigned char * packet) {
     packetFromServer * resp;
     createAccountResponse * car = NULL;
+    loginResult * lgr = NULL;
     qDebug() << "Login widget received a packet";
     switch (*packet) {
         case PacketFromServerType::ACCOUNT_RESULT:
             resp = new createAccountResponse(packet);
             car = dynamic_cast<createAccountResponse *>(resp);
             qDebug() << "Processing packet";
-            if (car->success) {
-                qDebug() << "Should be logging in";
-                logged_in();
-            }
-            else {
-                message->setText(QString::fromStdString("Failed to create account: " + car->reason));
-            }
+            if (car->success) logged_in();
+            else message->setText(QString::fromStdString("Failed to create account: " + car->reason));
+        break;
+        case PacketFromServerType::LOGIN_RESULT:
+            resp = new loginResult(packet);
+            lgr = dynamic_cast<loginResult *>(resp);
+            if (lgr->success) logged_in();
+            else message->setText(QString::fromStdString("Login failed: " + lgr->reason));
         break;
         default:
         qDebug() << "Invalid packet sent to login widget";
