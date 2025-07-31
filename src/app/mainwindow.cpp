@@ -33,13 +33,6 @@ void MainWindow::showLoginWidget()
     loginWidget = new LoginWidget(this, sock);
     setCentralWidget(loginWidget);
     connect(loginWidget, &LoginWidget::logged_in, this, &MainWindow::showMainCentralWidget);
-    // connect(loginButton, &QPushButton::clicked, this, [this]() {
-    //     if (usernameEdit->text() == "name" && passwordEdit->text() == "word") {
-    //         showMainCentralWidget();
-    //     } else {
-    //         loginButton->setText("Try again");
-    //     }
-    // });
 }
 
 void MainWindow::showMainCentralWidget()
@@ -51,9 +44,8 @@ void MainWindow::showMainCentralWidget()
     leftFrame->setFrameShape(QFrame::StyledPanel);
     leftFrame->setFixedWidth(200);
     QVBoxLayout *leftLayout = new QVBoxLayout(leftFrame);
-    leftEmptyFrame = new QFrame(leftFrame);
-    leftEmptyFrame->setFrameShape(QFrame::NoFrame);
-    leftLayout->addWidget(leftEmptyFrame);
+    friendsBox = new FriendsBox(database, leftFrame);
+    leftLayout->addWidget(friendsBox);
     leftLayout->addSpacing(10);
     codebookLabel = new QLabel("Codebook: NONE", leftFrame);
     codebookLabel->setFixedHeight(30);

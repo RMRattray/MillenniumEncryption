@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "login.h"
+#include "friendsbox.h"
 #include <QMainWindow>
 #include <QWidget>
 #include <QLineEdit>
@@ -23,17 +24,14 @@ public:
 private:
     // Login screen widgets
     LoginWidget *loginWidget;
-    QLineEdit *usernameEdit;
-    QLineEdit *passwordEdit;
-    QPushButton *loginButton;
 
     // Main central widget and its components
     QWidget *mainCentralWidget;
     QFrame *leftFrame;
     QFrame *rightFrame;
+    FriendsBox * friendsBox;
     QLabel *codebookLabel;
     QPushButton *viewCodebooksButton;
-    QFrame *leftEmptyFrame;
     QFrame *rightEmptyFrame;
     QLineEdit *rightTextBox;
     QPushButton *sendButton;

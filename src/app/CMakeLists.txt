@@ -2,6 +2,7 @@ qt_add_executable(millennium_serpent
     main.cpp
     mainwindow.cpp
     login.cpp
+    friendsbox.cpp
 )
 target_link_libraries(millennium_serpent PRIVATE 
     Qt6::Widgets 
