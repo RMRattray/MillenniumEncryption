@@ -9,6 +9,7 @@ target_link_libraries(millennium_serpent PRIVATE
     Qt6::Network
     millennium_crypt
     millennium_server
+    sqlite
 )
 
 # set_target_properties(millennium_serpent PROPERTIES

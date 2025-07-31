@@ -10,13 +10,14 @@
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <sqlite3.h>
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(sqlite3 *db, QWidget *parent = nullptr);
     ~MainWindow();
 
 private:
@@ -38,6 +39,7 @@ private:
     QPushButton *sendButton;
 
     QTcpSocket *sock;
+    sqlite3 *database;
 
     void showLoginWidget();
     void showMainCentralWidget();

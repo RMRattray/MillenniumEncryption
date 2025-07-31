@@ -12,8 +12,8 @@
 #include <QSpacerItem>
 #include <QTcpSocket>
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+MainWindow::MainWindow(sqlite3 *db, QWidget *parent)
+    : QMainWindow(parent), database(db)
 {
     sock = new QTcpSocket();
     QAbstractSocket::SocketState s = sock->state();
