@@ -3,6 +3,7 @@
 
 #include "login.h"
 #include "friendsbox.h"
+#include "requestsbox.h"
 #include <QMainWindow>
 #include <QWidget>
 #include <QLineEdit>
@@ -30,6 +31,7 @@ private:
     QFrame *leftFrame;
     QFrame *rightFrame;
     FriendsBox * friendsBox;
+    RequestsBox *requestsBox;
     QLabel *codebookLabel;
     QPushButton *viewCodebooksButton;
     QFrame *rightEmptyFrame;

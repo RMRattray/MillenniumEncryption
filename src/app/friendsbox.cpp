@@ -47,12 +47,91 @@ void FriendsBox::addFriend(int id, const QString &name, int status)
 {
     FriendBox *friendBox = new FriendBox(id, name, status, this);
     friendWidgets[id] = friendBox;
+    friendNameToId[name] = id;
     layout->addWidget(friendBox);
     
     connect(friendBox, &FriendBox::friendClicked, this, [this](int friendId) {
         qDebug() << "Friend clicked:" << friendId;
         // Emit signal or handle friend selection
     });
+}
+
+void FriendsBox::handlePacket(unsigned char *packet)
+{
+    switch (*packet) {
+        case PacketFromServerType::FRIEND_STATUS_UPDATE: {
+            friendStatusUpdate statusUpdate(packet);
+            QString username = QString::fromStdString(statusUpdate.username);
+            updateFriendStatus(username, static_cast<int>(statusUpdate.status));
+            break;
+        }
+        case PacketFromServerType::FRIEND_REQUEST_RESPONSE: {
+            friendRequestResponse response(packet);
+            QString from = QString::fromStdString(response.from);
+            if (response.response == FriendRequestResponse::ACCEPT) {
+                addNewFriend(from, FriendStatus::ONLINE);
+            }
+            break;
+        }
+    }
+}
+
+void FriendsBox::updateFriendStatus(const QString &username, int status)
+{
+    if (friendNameToId.contains(username)) {
+        int id = friendNameToId[username];
+        if (friendWidgets.contains(id)) {
+            friendWidgets[id]->updateStatus(status);
+            
+            // Update database
+            const char *sql = "UPDATE friends SET status = ? WHERE id = ?";
+            sqlite3_stmt *stmt;
+            int rc = sqlite3_prepare_v2(database, sql, -1, &stmt, nullptr);
+            if (rc == SQLITE_OK) {
+                sqlite3_bind_int(stmt, 1, status);
+                sqlite3_bind_int(stmt, 2, id);
+                sqlite3_step(stmt);
+                sqlite3_finalize(stmt);
+            }
+        }
+    }
+}
+
+void FriendsBox::addNewFriend(const QString &username, int status)
+{
+    // Check if friend already exists
+    if (friendNameToId.contains(username)) {
+        return;
+    }
+    
+    int id = insertFriendToDatabase(username, status);
+    if (id > 0) {
+        addFriend(id, username, status);
+    }
+}
+
+int FriendsBox::insertFriendToDatabase(const QString &name, int status)
+{
+    const char *sql = "INSERT INTO friends (friend_name, status) VALUES (?, ?)";
+    sqlite3_stmt *stmt;
+    
+    int rc = sqlite3_prepare_v2(database, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) {
+        qDebug() << "Failed to prepare statement:" << sqlite3_errmsg(database);
+        return -1;
+    }
+    
+    sqlite3_bind_text(stmt, 1, name.toUtf8().constData(), -1, SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 2, status);
+    
+    rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    
+    if (rc == SQLITE_DONE) {
+        return sqlite3_last_insert_rowid(database);
+    }
+    
+    return -1;
 }
 
 FriendBox::FriendBox(int friendId, const QString &name, int status, QWidget *parent)
@@ -74,9 +153,19 @@ FriendBox::FriendBox(int friendId, const QString &name, int status, QWidget *par
     QString statusText = (status == FriendStatus::ONLINE) ? "ONLINE" : "OFFLINE";
     QString statusColor = (status == FriendStatus::ONLINE) ? "#4CAF50" : "#9E9E9E";
     
-    QLabel *statusLabel = new QLabel(statusText, this);
+    statusLabel = new QLabel(statusText, this);
     statusLabel->setStyleSheet(QString("color: %1; font-size: 10px; font-weight: bold;").arg(statusColor));
     layout->addWidget(statusLabel);
+}
+
+void FriendBox::updateStatus(int status)
+{
+    friendStatus = status;
+    QString statusText = (status == FriendStatus::ONLINE) ? "ONLINE" : "OFFLINE";
+    QString statusColor = (status == FriendStatus::ONLINE) ? "#4CAF50" : "#9E9E9E";
+    
+    statusLabel->setText(statusText);
+    statusLabel->setStyleSheet(QString("color: %1; font-size: 10px; font-weight: bold;").arg(statusColor));
 }
 
 void FriendBox::mousePressEvent(QMouseEvent *event)
@@ -85,4 +174,4 @@ void FriendBox::mousePressEvent(QMouseEvent *event)
         emit friendClicked(friendId);
     }
     QWidget::mousePressEvent(event);
-} 
+}

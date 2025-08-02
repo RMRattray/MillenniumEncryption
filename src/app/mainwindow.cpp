@@ -44,8 +44,14 @@ void MainWindow::showMainCentralWidget()
     leftFrame->setFrameShape(QFrame::StyledPanel);
     leftFrame->setFixedWidth(200);
     QVBoxLayout *leftLayout = new QVBoxLayout(leftFrame);
+    
+    // Add FriendsBox and RequestsBox
     friendsBox = new FriendsBox(database, leftFrame);
     leftLayout->addWidget(friendsBox);
+    
+    requestsBox = new RequestsBox(database, sock, leftFrame);
+    leftLayout->addWidget(requestsBox);
+    
     leftLayout->addSpacing(10);
     codebookLabel = new QLabel("Codebook: NONE", leftFrame);
     codebookLabel->setFixedHeight(30);
@@ -57,6 +63,8 @@ void MainWindow::showMainCentralWidget()
     leftLayout->setStretch(1, 0);
     leftLayout->setStretch(2, 0);
     leftLayout->setStretch(3, 0);
+    leftLayout->setStretch(4, 0);
+
     // Right frame
     rightFrame = new QFrame(mainCentralWidget);
     rightFrame->setFrameShape(QFrame::StyledPanel);
@@ -92,13 +100,20 @@ void MainWindow::handlePacket() {
         switch (*packet) {
             case PacketFromServerType::ACCOUNT_RESULT:
             case PacketFromServerType::LOGIN_RESULT:
-            loginWidget->handlePacket(packet);
-            break;
+                loginWidget->handlePacket(packet);
+                break;
+            case PacketFromServerType::FRIEND_STATUS_UPDATE:
+                friendsBox->handlePacket(packet);
+            case PacketFromServerType::FRIEND_REQUEST_RESPONSE:
+                requestsBox->handlePacket(packet);
+                break;
+            case PacketFromServerType::FRIEND_REQUEST_FORWARD:
+                requestsBox->handlePacket(packet);
+                break;
             default:
-            qDebug() << "Received invalid packet";
+                qDebug() << "Received invalid packet";
         }
     }
-
 }
 
 MainWindow::~MainWindow()
