@@ -325,7 +325,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                 std::cout << "Received a friend request send packet ";
                 req = new friendRequestSend(receiveBuffer);
                 frs = dynamic_cast<friendRequestSend *>(req);
-                std::cout << "targeting user: '" << frs->target_name << "'.\n";
+                std::cout << "from user " << connectedUser << " targeting user: '" << frs->target_name << "'.\n";
                 
                 // Check if the target username exists in users table
                 db_statement = "SELECT COUNT(*) FROM users WHERE user_name = '" + frs->target_name + "';";
@@ -340,7 +340,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                     }
                     else {
                         // Target user exists, insert the request into the requests database
-                        db_statement = "INSERT INTO requests (to, from) VALUES ('" + frs->target_name + "', '" + connectedUser + "');";
+                        db_statement = "INSERT INTO requests (recipient, sender) VALUES ('" + frs->target_name + "', '" + connectedUser + "');";
                         if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) {
                             std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
                             sqlite3_free(zErrMsg);
