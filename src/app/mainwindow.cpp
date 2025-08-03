@@ -69,9 +69,10 @@ void MainWindow::showMainCentralWidget()
     rightFrame = new QFrame(mainCentralWidget);
     rightFrame->setFrameShape(QFrame::StyledPanel);
     QVBoxLayout *rightLayout = new QVBoxLayout(rightFrame);
-    rightEmptyFrame = new QFrame(rightFrame);
-    rightEmptyFrame->setFrameShape(QFrame::NoFrame);
-    rightLayout->addWidget(rightEmptyFrame);
+    
+    // Create MessagesBox to replace the empty frame
+    messagesBox = new MessagesBox(database, rightFrame);
+    rightLayout->addWidget(messagesBox);
     QHBoxLayout *bottomRow = new QHBoxLayout();
     rightTextBox = new QLineEdit(rightFrame);
     bottomRow->addWidget(rightTextBox);
@@ -87,6 +88,9 @@ void MainWindow::showMainCentralWidget()
     mainLayout->setStretch(0, 0);
     mainLayout->setStretch(1, 1);
     setCentralWidget(mainCentralWidget);
+    
+    // Connect friend selection to messages box
+    connect(friendsBox, &FriendsBox::friendSelected, messagesBox, &MessagesBox::selectFriend);
 }
 
 void MainWindow::handlePacket() {

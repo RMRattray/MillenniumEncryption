@@ -21,6 +21,9 @@ public:
     void updateFriendStatus(const QString &username, int status);
     void addNewFriend(const QString &username, int status);
 
+signals:
+    void friendSelected(int friendId);
+
 private:
     sqlite3 *database;
     QVBoxLayout *layout;

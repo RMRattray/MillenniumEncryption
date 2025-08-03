@@ -52,7 +52,7 @@ void FriendsBox::addFriend(int id, const QString &name, int status)
     
     connect(friendBox, &FriendBox::friendClicked, this, [this](int friendId) {
         qDebug() << "Friend clicked:" << friendId;
-        // Emit signal or handle friend selection
+        emit friendSelected(friendId);
     });
 }
 
