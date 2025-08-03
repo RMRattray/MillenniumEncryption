@@ -42,8 +42,24 @@ void RequestsBox::handlePacket(unsigned char *packet)
         }
         case PacketFromServerType::FRIEND_REQUEST_RESPONSE: {
             friendRequestResponse response(packet);
-            QString from = QString::fromStdString(response.from);
-            removeRequest(from);
+            QMessageBox msgBox;
+            switch (response.response) {
+                case FriendRequestResponse::DOES_NOT_EXIST:
+                    msgBox.setText(QString::fromStdString("No user named '" + response.to + "'."));
+                    msgBox.exec();
+                break;
+                case FriendRequestResponse::DATABASE_ERROR:
+                    msgBox.setText("A database error occurred while trying to contact the user.");
+                    msgBox.exec();
+                break;
+                case FriendRequestResponse::PENDING:
+                    addRequest(QString::fromStdString(response.to), false);
+                break;
+                case FriendRequestResponse::ACCEPT:
+                case FriendRequestResponse::REJECT:
+                    removeRequest(QString::fromStdString(response.to));
+                    break;
+            }
             break;
         }
     }

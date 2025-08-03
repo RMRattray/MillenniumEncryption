@@ -58,14 +58,17 @@ void FriendsBox::addFriend(int id, const QString &name, int status)
 
 void FriendsBox::handlePacket(unsigned char *packet)
 {
+    std::cout << "Friends box received a packet of type: ";
     switch (*packet) {
         case PacketFromServerType::FRIEND_STATUS_UPDATE: {
+            std::cout << "friend status update.\n";
             friendStatusUpdate statusUpdate(packet);
             QString username = QString::fromStdString(statusUpdate.username);
             updateFriendStatus(username, static_cast<int>(statusUpdate.status));
             break;
         }
         case PacketFromServerType::FRIEND_REQUEST_RESPONSE: {
+            std::cout << "friend request response.\n";
             friendRequestResponse response(packet);
             QString from = QString::fromStdString(response.from);
             if (response.response == FriendRequestResponse::ACCEPT) {

@@ -15,6 +15,8 @@
 MainWindow::MainWindow(sqlite3 *db, QWidget *parent)
     : QMainWindow(parent), database(db)
 {
+
+    // Set up connection to server
     sock = new QTcpSocket();
     QAbstractSocket::SocketState s = sock->state();
     qDebug() << "About to attempt to connect";
@@ -24,19 +26,11 @@ MainWindow::MainWindow(sqlite3 *db, QWidget *parent)
     else {
         qDebug() << "Failed to connect to server\n";
     }
-    showLoginWidget();
-    connect(sock, &QTcpSocket::readyRead, this, &MainWindow::handlePacket);
-}
 
-void MainWindow::showLoginWidget()
-{
+    // Login widget takes up the entire screen
     loginWidget = new LoginWidget(this, sock);
-    setCentralWidget(loginWidget);
     connect(loginWidget, &LoginWidget::logged_in, this, &MainWindow::showMainCentralWidget);
-}
 
-void MainWindow::showMainCentralWidget()
-{
     mainCentralWidget = new QWidget(this);
     QHBoxLayout *mainLayout = new QHBoxLayout(mainCentralWidget);
     // Left frame
@@ -87,10 +81,21 @@ void MainWindow::showMainCentralWidget()
     mainLayout->addWidget(rightFrame);
     mainLayout->setStretch(0, 0);
     mainLayout->setStretch(1, 1);
-    setCentralWidget(mainCentralWidget);
-    
     // Connect friend selection to messages box
     connect(friendsBox, &FriendsBox::friendSelected, messagesBox, &MessagesBox::selectFriend);
+
+    showLoginWidget();
+    connect(sock, &QTcpSocket::readyRead, this, &MainWindow::handlePacket);
+}
+
+void MainWindow::showLoginWidget()
+{
+    setCentralWidget(loginWidget);
+}
+
+void MainWindow::showMainCentralWidget()
+{
+    setCentralWidget(mainCentralWidget);
 }
 
 void MainWindow::handlePacket() {

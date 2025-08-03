@@ -336,6 +336,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                 }
                 else {
                     if (targetExists == 0) {
+                        std::cout << "That target does not exist.\n";
                         resp = new friendRequestResponse(frs->target_name, connectedUser, FriendRequestResponse::DOES_NOT_EXIST);
                     }
                     else {
@@ -461,7 +462,10 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
 void MillenniumServer::sendOutPacket(std::string to, std::shared_ptr<packetFromServer> f) {
     std::cout << "Sending a packet to " << to << std::endl;
     std::unique_lock infoLock(clientMutex);
-    if (clientIPs.find(to) == clientIPs.end()) return;
+    if (clientIPs.find(to) == clientIPs.end()) {
+        std::cout << "That user is not online.\n";
+        return;
+    }
     std::string destIPStr = clientIPs[to];
     std::unique_lock socketLock(*(socketMutexes[destIPStr]));
     SOCKET destSocket = clientSockets[destIPStr];
