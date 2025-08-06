@@ -23,7 +23,7 @@ MillenniumServer::MillenniumServer() {
     char * zErrMsg;
     if (sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS users (user_name TEXT, pass_hash TEXT, hash_count INTEGER);", NULL, NULL, &zErrMsg) ||
         sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS friends (left TEXT, right TEXT);", NULL, NULL, &zErrMsg) ||
-        sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS requests (recipient TEXT, sender TEXT);", NULL, NULL, &zErrMsg))
+        sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS requests (recipient TEXT, sender TEXT, hidden INTEGER);", NULL, NULL, &zErrMsg))
     {
         fprintf(stderr, "Error occurred: %s\n", zErrMsg);
         sqlite3_free(zErrMsg);
@@ -283,7 +283,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
 
                                 // get incoming friend requests
                                 names.clear();
-                                db_statement = "SELECT sender FROM requests WHERE recipient = '" + connectedUser + "';";
+                                db_statement = "SELECT sender FROM requests WHERE recipient = '" + connectedUser + "' AND hidden = FALSE;";
                                 if (sqlite3_exec(db, db_statement.c_str(), gatherStringsCallback, &names, &zErrMsg) != SQLITE_OK) {
                                     std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
                                     sqlite3_free(zErrMsg);
@@ -358,7 +358,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                     }
                     else {
                         // Target user exists, insert the request into the requests database
-                        db_statement = "INSERT INTO requests (recipient, sender) VALUES ('" + frs->target_name + "', '" + connectedUser + "');";
+                        db_statement = "INSERT INTO requests (recipient, sender, hidden) VALUES ('" + frs->target_name + "', '" + connectedUser + "', FALSE);";
                         if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) {
                             std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
                             sqlite3_free(zErrMsg);
@@ -411,15 +411,21 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                     case FriendRequestResponse::REJECT:
                     frr = std::make_shared<friendRequestResponse>(connectedUser, fra->from, fra->response);
                         std::cout << "Passing on that information to " << fra->to;
-                    sendOutPacket(fra->to, frr);
-                    case FriendRequestResponse::HIDE:
+                        sendOutPacket(fra->to, frr);
                         std::cout << "\tand should be removing it from the database" << std::endl;
-                    db_statement = "DELETE FROM requests WHERE recipient = '" + connectedUser + "' AND sender = '" + fra->from + "';";
-                    if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) { 
-                        std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
-                        sqlite3_free(zErrMsg);
-                    }
-                    break;
+                        db_statement = "DELETE FROM requests WHERE recipient = '" + connectedUser + "' AND sender = '" + fra->from + "';";
+                        if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) { 
+                            std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
+                            sqlite3_free(zErrMsg);
+                        }
+                        break;
+                    case FriendRequestResponse::HIDE:
+                        db_statement = "UPDATE requests SET hidden = TRUE WHERE recipient = '" + connectedUser + "' AND sender = '" + fra->from + "';";
+                        if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) { 
+                            std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
+                            sqlite3_free(zErrMsg);
+                        }
+                        break;
                     default:
                     std::cout << "Which is invalid.\n";
                 }
