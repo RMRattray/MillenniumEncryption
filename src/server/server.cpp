@@ -313,6 +313,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                                     sqlite3_free(zErrMsg);
                                 }
                                 for (auto &name : names) {
+                                    std::cout << "Checking status of: " << name << std::endl;
                                     std::unique_lock<std::mutex> lock(clientMutex);
                                     // bool has_name = clientIPs.contains(name);
                                     bool has_name = (clientIPs.find(name) != clientIPs.end());
@@ -322,6 +323,10 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                                         sendOutPacket(connectedUser, fsu);
                                         fsu = std::make_shared<friendStatusUpdate>(connectedUser, FriendStatus::ONLINE);
                                         sendOutPacket(name, fsu);
+                                    }
+                                    else {
+                                        fsu = std::make_shared<friendStatusUpdate>(name, FriendStatus::ONLINE);
+                                        sendOutPacket(connectedUser, fsu);
                                     }
                                 }
                             }
@@ -380,11 +385,12 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                     case FriendRequestResponse::ACCEPT:
                     db_statement = "INSERT INTO friends (left, right) VALUES ('" + connectedUser + "', '" + fra->from + "'); "
                                 + "INSERT INTO friends (left, right) VALUES ('" + fra->from + "', '" + connectedUser + "')";
-                    std::cout << "It's an accepted request - should be running the query: " << db_statement;
+                    std::cout << "It's an accepted request - should be running the query: " << db_statement << ";\n";
                     if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) { 
                         std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
                         sqlite3_free(zErrMsg);
                     }
+                    resp = new friendRequestResponse(fra->from, connectedUser, fra->response);
                     case FriendRequestResponse::REJECT:
                     frr = std::make_shared<friendRequestResponse>(connectedUser, fra->from, fra->response);
                         std::cout << "Passing on that information to " << fra->to;
