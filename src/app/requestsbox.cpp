@@ -53,12 +53,12 @@ void RequestsBox::handlePacket(unsigned char *packet)
                     msgBox.exec();
                 break;
                 case FriendRequestResponse::PENDING:
-                qDebug() << "Adding request from " << response.to;
+                qDebug() << "Adding request to " << response.to;
                     addRequest(QString::fromStdString(response.to), false);
                 break;
                 case FriendRequestResponse::ACCEPT:
                 case FriendRequestResponse::REJECT:
-                qDebug() << "Removing request from " << response.to;
+                qDebug() << "Removing request from " << response.from << " to " << response.to;
                     removeRequest(QString::fromStdString(response.to));
                     break;
             }
@@ -78,22 +78,16 @@ void RequestsBox::addRequest(const QString &from, bool hasButtons)
     layout->insertWidget(layout->count() - 1, requestBox); // Insert before the button
     
     connect(requestBox, &RequestBox::acceptRequest, this, [this](const QString &username) {
+        qDebug() << "About to send the friend request acknowledgement packet";
         sendFriendRequestAcknowledge(my_name, username, FriendRequestResponse::ACCEPT);
-        // Add friend to database
-        const char *sql = "INSERT INTO friends (friend_name, status) VALUES (?, ?)";
-        sqlite3_stmt *stmt;
-        int rc = sqlite3_prepare_v2(database, sql, -1, &stmt, nullptr);
-        if (rc == SQLITE_OK) {
-            sqlite3_bind_text(stmt, 1, username.toUtf8().constData(), -1, SQLITE_STATIC);
-            sqlite3_bind_int(stmt, 2, FriendStatus::ONLINE);
-            sqlite3_step(stmt);
-            sqlite3_finalize(stmt);
-        }
+        qDebug() << "About to remove the request from the list";
         removeRequest(username);
     });
     
     connect(requestBox, &RequestBox::rejectRequest, this, [this](const QString &username) {
+        qDebug() << "About to send the friend request acknowledgement packet";
         sendFriendRequestAcknowledge(my_name, username, FriendRequestResponse::REJECT);
+        qDebug() << "About to remove the request from the list";
         removeRequest(username);
     });
     

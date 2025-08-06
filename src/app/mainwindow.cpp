@@ -29,7 +29,6 @@ MainWindow::MainWindow(sqlite3 *db, QWidget *parent)
 
     // Login widget takes up the entire screen
     loginWidget = new LoginWidget(this, sock);
-    connect(loginWidget, &LoginWidget::logged_in, this, &MainWindow::showMainCentralWidget);
 
     mainCentralWidget = new QWidget(this);
     QHBoxLayout *mainLayout = new QHBoxLayout(mainCentralWidget);
@@ -85,6 +84,7 @@ MainWindow::MainWindow(sqlite3 *db, QWidget *parent)
     connect(friendsBox, &FriendsBox::friendSelected, messagesBox, &MessagesBox::selectFriend);
 
     showLoginWidget();
+    connect(loginWidget, &LoginWidget::logged_in, this, &MainWindow::showMainCentralWidget);
     connect(sock, &QTcpSocket::readyRead, this, &MainWindow::handlePacket);
 }
 
@@ -93,10 +93,13 @@ void MainWindow::showLoginWidget()
     setCentralWidget(loginWidget);
 }
 
-void MainWindow::showMainCentralWidget()
+void MainWindow::showMainCentralWidget(QString new_username)
 {
-    requestsBox->my_name = loginWidget->usernameEdit->text();
+    qDebug() << "Should be showing the main central widget now";
+    requestsBox->my_name = new_username;
+    qDebug() << "Successfully set a name property";
     setCentralWidget(mainCentralWidget);
+    qDebug() << "And the central widget";
 }
 
 void MainWindow::handlePacket() {
@@ -109,15 +112,20 @@ void MainWindow::handlePacket() {
     else {
         switch (*packet) {
             case PacketFromServerType::ACCOUNT_RESULT:
+                qDebug() << "It's an account result packet";
             case PacketFromServerType::LOGIN_RESULT:
+                qDebug() << "It's a login result packet";
                 loginWidget->handlePacket(packet);
                 break;
             case PacketFromServerType::FRIEND_STATUS_UPDATE:
+                qDebug() << "It's a friend status update packet";
                 friendsBox->handlePacket(packet);
             case PacketFromServerType::FRIEND_REQUEST_RESPONSE:
+                qDebug() << "It's a friend request response packet";
                 requestsBox->handlePacket(packet);
                 break;
             case PacketFromServerType::FRIEND_REQUEST_FORWARD:
+                qDebug() << "It's a friend request forwarding packet";
                 requestsBox->handlePacket(packet);
                 break;
             default:

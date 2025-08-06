@@ -49,8 +49,8 @@ class packetFromServer {
     public:
     virtual int write_to_packet(unsigned char * buffer) { return 0; }
     ~packetFromServer() { }
-    protected:
     PacketFromServerType type;
+    protected:
 };
 
 // PacketToServer derivatives

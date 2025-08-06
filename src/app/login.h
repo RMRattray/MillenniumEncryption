@@ -17,7 +17,7 @@ public:
     void handlePacket(unsigned char * packet);
     QLineEdit *usernameEdit;
 signals:
-    void logged_in();
+    void logged_in(QString username);
 private slots:
     void swapLoginPurpose();
     void login();

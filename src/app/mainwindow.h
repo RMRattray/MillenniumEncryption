@@ -11,6 +11,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QFrame>
+#include <QString>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <sqlite3.h>
@@ -44,7 +45,7 @@ private:
     sqlite3 *database;
 
     void showLoginWidget();
-    void showMainCentralWidget();
+    void showMainCentralWidget(QString);
     void handlePacket();
 };
 

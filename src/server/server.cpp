@@ -460,17 +460,31 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
         // std::string response = "Server received: " + std::string((char *)receiveBuffer);
 
         if (resp) {
-            std::cout << "All good, about to send packet\n";
+            std::cout << "To the connected user, sending a packet of type ";
             std::lock_guard<std::mutex> myLock(*(socketMutexes[clientIP]));
 
-            // while (resp->write_to_packet(sendBuffer)) {
-            //     int sbyteCount = send(clientSocket, (char *)sendBuffer, PACKET_BUFFER_SIZE, 0);
-            //     if (sbyteCount == SOCKET_ERROR) {
-            //         std::cout << "Error sending to client " << clientIP << ": " << WSAGetLastError() << std::endl;
-            //         delete resp;
-            //         goto close;
-            //     }
-            // }
+            switch (resp->type) {
+                case (PacketFromServerType::ACCOUNT_RESULT):
+                    std::cout << "account result"; break;
+                case (PacketFromServerType::LOGIN_RESULT):
+                    std::cout << "login result"; break;
+                case (PacketFromServerType::FRIEND_STATUS_UPDATE):
+                    std::cout << "friend status update"; break;
+                case (PacketFromServerType::FRIEND_REQUEST_FORWARD):
+                    std::cout << "friend request forward"; break;
+                case (PacketFromServerType::FRIEND_REQUEST_RESPONSE):
+                    std::cout << "friend request response"; break;
+                case (PacketFromServerType::MESSAGE_FORWARD):
+                    std::cout << "message forward"; break;
+                case (PacketFromServerType::MESSAGE_RESPONSE):
+                    std::cout << "message response"; break;
+                default:
+                    std::cout << "invalid";
+            }
+
+            std::cout << "\n";
+
+
             resp->write_to_packet(sendBuffer); // all response packets are short
             int sbyteCount = send(clientSocket, (char *)sendBuffer, PACKET_BUFFER_SIZE, 0);
             if (sbyteCount == SOCKET_ERROR) {
