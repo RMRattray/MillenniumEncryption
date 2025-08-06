@@ -5,6 +5,8 @@
 #include <QMouseEvent>
 #include <QDebug>
 #include <iostream>
+#include <string>
+#include <QString>
 
 FriendsBox::FriendsBox(sqlite3 *db, QWidget *parent)
     : QWidget(parent), database(db)
@@ -36,6 +38,8 @@ void FriendsBox::loadFriends()
         int id = sqlite3_column_int(stmt, 0);
         const char *name = (const char*)sqlite3_column_text(stmt, 1);
         int status = sqlite3_column_int(stmt, 2);
+
+        qDebug() << "We have a friend named: " << name;
         
         addFriend(id, QString::fromUtf8(name), status);
     }
@@ -64,6 +68,7 @@ void FriendsBox::handlePacket(unsigned char *packet)
             std::cout << "friend status update.\n";
             friendStatusUpdate statusUpdate(packet);
             QString username = QString::fromStdString(statusUpdate.username);
+            qDebug() << "Status of: " << username;
             updateFriendStatus(username, static_cast<int>(statusUpdate.status));
             break;
         }
@@ -81,12 +86,8 @@ void FriendsBox::handlePacket(unsigned char *packet)
 
 void FriendsBox::updateFriendStatus(const QString &username, int status)
 {   
-    int id = friendNameToId.contains(username) ? friendNameToId[username] : insertFriendToDatabase(username, status);
-    if (id == -1) {
-        qDebug() << "Error inserting new friend into database";
-        return;
-    }
-    if (!friendNameToId.contains(username)) {
+    if (!friendNameToId.contains(username)) addNewFriend(username, status);
+    else {
         int id = friendNameToId[username];
         if (friendWidgets.contains(id)) {
             friendWidgets[id]->updateStatus(status);
@@ -128,7 +129,10 @@ int FriendsBox::insertFriendToDatabase(const QString &name, int status)
         qDebug() << "Failed to prepare statement:" << sqlite3_errmsg(database);
         return -1;
     }
+
+    qDebug() << "Name of friend added to database: " << name;
     
+    // THIS IS ADDING RANDOM CHARACTERS TO THE DATABASE!!!
     sqlite3_bind_text(stmt, 1, name.toUtf8().constData(), -1, SQLITE_STATIC);
     sqlite3_bind_int(stmt, 2, status);
     

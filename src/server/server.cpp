@@ -325,7 +325,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                                         sendOutPacket(name, fsu);
                                     }
                                     else {
-                                        fsu = std::make_shared<friendStatusUpdate>(name, FriendStatus::ONLINE);
+                                        fsu = std::make_shared<friendStatusUpdate>(name, FriendStatus::OFFLINE);
                                         sendOutPacket(connectedUser, fsu);
                                     }
                                 }
@@ -390,7 +390,24 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                         std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
                         sqlite3_free(zErrMsg);
                     }
-                    resp = new friendRequestResponse(fra->from, connectedUser, fra->response);
+
+                    // announce the status of this new friend
+                    {
+                        std::cout << "Checking status of: " << fra->from << std::endl;
+                        std::unique_lock<std::mutex> lock(clientMutex);
+                        // bool has_name = clientIPs.contains(name);
+                        bool has_name = (clientIPs.find(fra->from) != clientIPs.end());
+                        lock.unlock();
+                        if (has_name) {
+                            fsu = std::make_shared<friendStatusUpdate>(fra->from, FriendStatus::ONLINE);
+                            sendOutPacket(connectedUser, fsu);
+                        }
+                        else {
+                            fsu = std::make_shared<friendStatusUpdate>(fra->from, FriendStatus::OFFLINE);
+                            sendOutPacket(connectedUser, fsu);
+                        }
+                    }
+                    
                     case FriendRequestResponse::REJECT:
                     frr = std::make_shared<friendRequestResponse>(connectedUser, fra->from, fra->response);
                         std::cout << "Passing on that information to " << fra->to;
