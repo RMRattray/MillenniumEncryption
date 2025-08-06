@@ -132,8 +132,11 @@ int FriendsBox::insertFriendToDatabase(const QString &name, int status)
 
     qDebug() << "Name of friend added to database: " << name;
     
-    // THIS IS ADDING RANDOM CHARACTERS TO THE DATABASE!!!
-    sqlite3_bind_text(stmt, 1, name.toUtf8().constData(), -1, SQLITE_STATIC);
+    std::string namechars = name.toStdString();
+
+    qDebug() << "Bound as: " << QString::fromStdString(std::string(namechars.c_str()));
+
+    sqlite3_bind_text(stmt, 1, namechars.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_int(stmt, 2, status);
     
     rc = sqlite3_step(stmt);
