@@ -80,8 +80,13 @@ void FriendsBox::handlePacket(unsigned char *packet)
 }
 
 void FriendsBox::updateFriendStatus(const QString &username, int status)
-{
-    if (friendNameToId.contains(username)) {
+{   
+    int id = friendNameToId.contains(username) ? friendNameToId[username] : insertFriendToDatabase(username, status);
+    if (id == -1) {
+        qDebug() << "Error inserting new friend into database";
+        return;
+    }
+    if (!friendNameToId.contains(username)) {
         int id = friendNameToId[username];
         if (friendWidgets.contains(id)) {
             friendWidgets[id]->updateStatus(status);

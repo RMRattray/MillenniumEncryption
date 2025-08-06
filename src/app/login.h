@@ -15,13 +15,13 @@ public:
     ~LoginWidget();
     QTcpSocket *sock;
     void handlePacket(unsigned char * packet);
+    QLineEdit *usernameEdit;
 signals:
     void logged_in();
 private slots:
     void swapLoginPurpose();
     void login();
 private:
-    QLineEdit *usernameEdit;
     QLineEdit *passwordEdit;
     QPushButton *createAccountInstead;
     bool creating_account;

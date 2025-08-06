@@ -9,6 +9,7 @@
 #include <QLineEdit>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QString>
 #include <sqlite3.h>
 
 class RequestBox;
@@ -23,6 +24,7 @@ public:
     ~RequestsBox();
 
     void handlePacket(unsigned char *packet);
+    QString my_name;
 
 private slots:
     void createFriendRequest();

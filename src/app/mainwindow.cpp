@@ -95,6 +95,7 @@ void MainWindow::showLoginWidget()
 
 void MainWindow::showMainCentralWidget()
 {
+    requestsBox->my_name = loginWidget->usernameEdit->text();
     setCentralWidget(mainCentralWidget);
 }
 

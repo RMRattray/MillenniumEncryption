@@ -18,8 +18,7 @@ int main(int argc, char **argv)
 
     // Set up database if it doesn't exist    
     if (sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS friends (id INTEGER PRIMARY KEY AUTOINCREMENT, friend_name TEXT NOT NULL, status INTEGER NOT NULL)", nullptr, nullptr, nullptr) ||
-        sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, friend_id INTEGER NOT NULL, message TEXT NOT NULL, original BOOLEAN NOT NULL, FOREIGN KEY (friend_id) REFERENCES friends (id))", nullptr, nullptr, nullptr) ||
-        sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS requests (friend_name TEXT NOT NULL, status INTEGER NOT NULL)", nullptr, nullptr, nullptr)) {
+        sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, friend_id INTEGER NOT NULL, message TEXT NOT NULL, original BOOLEAN NOT NULL, FOREIGN KEY (friend_id) REFERENCES friends (id))", nullptr, nullptr, nullptr)) {
         std::cerr << "SQL error creating tables: " << sqlite3_errmsg(db) << std::endl;
         sqlite3_close(db);
         return 1;

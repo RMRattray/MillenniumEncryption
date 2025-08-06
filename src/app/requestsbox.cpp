@@ -53,10 +53,12 @@ void RequestsBox::handlePacket(unsigned char *packet)
                     msgBox.exec();
                 break;
                 case FriendRequestResponse::PENDING:
+                qDebug() << "Adding request from " << response.to;
                     addRequest(QString::fromStdString(response.to), false);
                 break;
                 case FriendRequestResponse::ACCEPT:
                 case FriendRequestResponse::REJECT:
+                qDebug() << "Removing request from " << response.to;
                     removeRequest(QString::fromStdString(response.to));
                     break;
             }
@@ -76,7 +78,7 @@ void RequestsBox::addRequest(const QString &from, bool hasButtons)
     layout->insertWidget(layout->count() - 1, requestBox); // Insert before the button
     
     connect(requestBox, &RequestBox::acceptRequest, this, [this](const QString &username) {
-        sendFriendRequestAcknowledge("", username, FriendRequestResponse::ACCEPT);
+        sendFriendRequestAcknowledge(my_name, username, FriendRequestResponse::ACCEPT);
         // Add friend to database
         const char *sql = "INSERT INTO friends (friend_name, status) VALUES (?, ?)";
         sqlite3_stmt *stmt;
@@ -91,12 +93,12 @@ void RequestsBox::addRequest(const QString &from, bool hasButtons)
     });
     
     connect(requestBox, &RequestBox::rejectRequest, this, [this](const QString &username) {
-        sendFriendRequestAcknowledge("", username, FriendRequestResponse::REJECT);
+        sendFriendRequestAcknowledge(my_name, username, FriendRequestResponse::REJECT);
         removeRequest(username);
     });
     
     connect(requestBox, &RequestBox::hideRequest, this, [this](const QString &username) {
-        sendFriendRequestAcknowledge("", username, FriendRequestResponse::HIDE);
+        sendFriendRequestAcknowledge(my_name, username, FriendRequestResponse::HIDE);
         removeRequest(username);
     });
 }

@@ -281,7 +281,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
 
                                 // If login is successful, give them information
 
-                                // get pending friend requests
+                                // get incoming friend requests
                                 names.clear();
                                 db_statement = "SELECT sender FROM requests WHERE recipient = '" + connectedUser + "';";
                                 if (sqlite3_exec(db, db_statement.c_str(), gatherStringsCallback, &names, &zErrMsg) != SQLITE_OK) {
@@ -291,6 +291,18 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                                 for (auto &name : names) {
                                     frf = std::make_shared<friendRequestForward>(connectedUser, name);
                                     sendOutPacket(connectedUser, frf);
+                                }
+
+                                // get pending friend requests
+                                names.clear();
+                                db_statement = "SELECT recipient FROM requests WHERE sender = '" + connectedUser + "';";
+                                if (sqlite3_exec(db, db_statement.c_str(), gatherStringsCallback, &names, &zErrMsg) != SQLITE_OK) {
+                                    std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
+                                    sqlite3_free(zErrMsg);
+                                } 
+                                for (auto &name : names) {
+                                    frr = std::make_shared<friendRequestResponse>(name, connectedUser, FriendRequestResponse::PENDING);
+                                    sendOutPacket(connectedUser, frr);
                                 }
 
                                 // get friend statuses and send friend statuses
@@ -368,14 +380,17 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                     case FriendRequestResponse::ACCEPT:
                     db_statement = "INSERT INTO friends (left, right) VALUES ('" + connectedUser + "', '" + fra->from + "'); "
                                 + "INSERT INTO friends (left, right) VALUES ('" + fra->from + "', '" + connectedUser + "')";
+                    std::cout << "It's an accepted request - should be running the query: " << db_statement;
                     if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) { 
                         std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
                         sqlite3_free(zErrMsg);
                     }
                     case FriendRequestResponse::REJECT:
                     frr = std::make_shared<friendRequestResponse>(connectedUser, fra->from, fra->response);
+                        std::cout << "Passing on that information to " << fra->to;
                     sendOutPacket(fra->to, frr);
                     case FriendRequestResponse::HIDE:
+                        std::cout << "\tand should be removing it from the database" << std::endl;
                     db_statement = "DELETE FROM requests WHERE recipient = '" + connectedUser + "' AND sender = '" + fra->from + "';";
                     if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) { 
                         std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
