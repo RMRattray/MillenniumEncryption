@@ -121,10 +121,29 @@ void FriendsBox::addNewFriend(const QString &username, int status)
 
 int FriendsBox::insertFriendToDatabase(const QString &name, int status)
 {
+    std::string namechars = name.toStdString();
+
+    const char *sql_chk = "SELECT COUNT(*) FROM friends WHERE friend_name = ? ;";
+    sqlite3_stmt *stmt_chk;
+    int rc = sqlite3_prepare_v2(database, sql_chk, -1, &stmt_chk, nullptr);
+    if (rc != SQLITE_OK) {
+        qDebug() << "Failed to prepare statement:" << sqlite3_errmsg(database);
+        return -1;
+    }
+    sqlite3_bind_text(stmt_chk, 1, namechars.c_str(), -1, SQLITE_STATIC);
+    rc = sqlite3_step(stmt_chk);
+    int ans = sqlite3_column_int(stmt_chk, 0);
+    sqlite3_finalize(stmt_chk);
+
+    if (ans) {
+        qDebug() << "Caution!  Attempted to add duplicate friend " << name << "to database.";
+        return -1;
+    }
+
     const char *sql = "INSERT INTO friends (friend_name, status) VALUES (?, ?)";
     sqlite3_stmt *stmt;
     
-    int rc = sqlite3_prepare_v2(database, sql, -1, &stmt, nullptr);
+    rc = sqlite3_prepare_v2(database, sql, -1, &stmt, nullptr);
     if (rc != SQLITE_OK) {
         qDebug() << "Failed to prepare statement:" << sqlite3_errmsg(database);
         return -1;
@@ -132,7 +151,7 @@ int FriendsBox::insertFriendToDatabase(const QString &name, int status)
 
     qDebug() << "Name of friend added to database: " << name;
     
-    std::string namechars = name.toStdString();
+    
 
     qDebug() << "Bound as: " << QString::fromStdString(std::string(namechars.c_str()));
 

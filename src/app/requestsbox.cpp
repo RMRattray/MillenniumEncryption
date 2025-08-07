@@ -136,7 +136,32 @@ void RequestsBox::createFriendRequest()
     FriendRequestDialog dialog(this);
     if (dialog.exec() == QDialog::Accepted) {
         QString username = dialog.getUsername();
-        if (!username.isEmpty()) {
+
+        std::string target_name = username.toStdString();
+        const char *sql_chk = "SELECT COUNT(*) FROM friends WHERE friend_name = ? ;";
+        sqlite3_stmt *stmt_chk;
+        int rc = sqlite3_prepare_v2(database, sql_chk, -1, &stmt_chk, nullptr);
+        if (rc != SQLITE_OK) {
+            qDebug() << "Failed to prepare statement:" << sqlite3_errmsg(database);
+            return;
+        }
+        sqlite3_bind_text(stmt_chk, 1, target_name.c_str(), -1, SQLITE_STATIC);
+        rc = sqlite3_step(stmt_chk);
+        int ans = sqlite3_column_int(stmt_chk, 0);
+        sqlite3_finalize(stmt_chk);
+
+        QMessageBox msgBox;
+        if (ans) {
+            msgBox.setText(QString::fromStdString("You are already friends with " + target_name + "."));
+            msgBox.exec();
+            return;
+        }
+
+        else if (requestWidgets.contains(username)) {
+            msgBox.setText(QString::fromStdString("You already have a request " + ( requestWidgets[username]->is_pending ? std::string("to ") : std::string("from ") ) + target_name + "."));
+            msgBox.exec();
+        }
+        else {
             sendFriendRequestSend(username);
         }
     }
@@ -158,6 +183,7 @@ RequestBox::RequestBox(const QString &username, bool hasButtons, QWidget *parent
     layout->addStretch();
     
     if (hasButtons) {
+        is_pending = false;
         // Create Accept, Reject, Hide buttons
         acceptButton = new QPushButton("Accept", this);
         acceptButton->setFixedSize(60, 25);
@@ -182,6 +208,7 @@ RequestBox::RequestBox(const QString &username, bool hasButtons, QWidget *parent
         statusLabel = new QLabel("Pending", this);
         statusLabel->setStyleSheet("color: #FF9800; font-size: 10px; font-weight: bold;");
         layout->addWidget(statusLabel);
+        is_pending = true;
     }
 }
 

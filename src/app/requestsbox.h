@@ -48,6 +48,7 @@ class RequestBox : public QWidget
 public:
     explicit RequestBox(const QString &username, bool hasButtons, QWidget *parent = nullptr);
     void handlePacket(unsigned char *packet);
+    bool is_pending;
 
 signals:
     void acceptRequest(const QString &username);
