@@ -12,13 +12,13 @@
 #include <QSpacerItem>
 #include <QTcpSocket>
 
-MainWindow::MainWindow(sqlite3 *db, QWidget *parent)
+MainWindow::MainWindow(sqlite3 *db, QString server_address, QWidget *parent)
     : QMainWindow(parent), database(db)
 {
     sock = new QTcpSocket();
     QAbstractSocket::SocketState s = sock->state();
     qDebug() << "About to attempt to connect";
-    sock->connectToHost("127.0.0.1", 1999);
+    sock->connectToHost(server_address, 1999);
     if (sock->waitForConnected(3000))
         qDebug() << "Connected to server!\n";
     else {

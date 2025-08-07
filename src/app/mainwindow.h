@@ -18,7 +18,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(sqlite3 *db, QWidget *parent = nullptr);
+    explicit MainWindow(sqlite3 *db, QString server_address, QWidget *parent = nullptr);
     ~MainWindow();
 
 private:

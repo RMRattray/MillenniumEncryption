@@ -8,6 +8,21 @@ int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
 
+    // Get server address if one is present in command-line arguments
+    QString server_address = "127.0.0.1";
+    int i = 1;
+    while (i < argc) {
+        if (!strcmp(argv[i], "-ip")) {
+            ++i;
+            if (i == argc) {
+                std::cerr << "No IP address after -ip flag\n";
+                return 1;
+            }
+            server_address = QString(argv[i]);
+        }
+        ++i;
+    }
+
     // Create SQLite database
     sqlite3 *db;
     int rc = sqlite3_open("PIT.db", &db);
@@ -95,7 +110,7 @@ int main(int argc, char **argv)
     }
     sqlite3_finalize(stmt);
 
-    MainWindow window(db);
+    MainWindow window(db, server_address);
     window.show();
 
     int result = app.exec();
