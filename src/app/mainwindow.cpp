@@ -46,12 +46,16 @@ MainWindow::MainWindow(sqlite3 *db, QWidget *parent)
     leftLayout->addWidget(requestsBox);
     
     leftLayout->addSpacing(10);
+
+    // To be replaced by CodeBox:
     codebookLabel = new QLabel("Codebook: NONE", leftFrame);
     codebookLabel->setFixedHeight(30);
     leftLayout->addWidget(codebookLabel);
     viewCodebooksButton = new QPushButton("View codebooks", leftFrame);
     viewCodebooksButton->setFixedHeight(30);
     leftLayout->addWidget(viewCodebooksButton);
+
+
     leftLayout->setStretch(0, 1);
     leftLayout->setStretch(1, 0);
     leftLayout->setStretch(2, 0);

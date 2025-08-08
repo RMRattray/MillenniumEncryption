@@ -5,6 +5,7 @@ qt_add_executable(millennium_serpent
     friendsbox.cpp
     requestsbox.cpp
     messagesbox.cpp
+    codebox.cpp
 )
 target_link_libraries(millennium_serpent PRIVATE 
     Qt6::Widgets 
