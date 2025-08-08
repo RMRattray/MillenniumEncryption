@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "login.h"
 #include "packet.h"
+#include "../server/packet.h"
 #include <QMainWindow>
 #include <QLineEdit>
 #include <QPushButton>
@@ -47,13 +48,9 @@ MainWindow::MainWindow(sqlite3 *db, QWidget *parent)
     
     leftLayout->addSpacing(10);
 
-    // To be replaced by CodeBox:
-    codebookLabel = new QLabel("Codebook: NONE", leftFrame);
-    codebookLabel->setFixedHeight(30);
-    leftLayout->addWidget(codebookLabel);
-    viewCodebooksButton = new QPushButton("View codebooks", leftFrame);
-    viewCodebooksButton->setFixedHeight(30);
-    leftLayout->addWidget(viewCodebooksButton);
+    // Add CodeBox
+    codeBox = new CodeBox(sock, leftFrame);
+    leftLayout->addWidget(codeBox);
 
 
     leftLayout->setStretch(0, 1);
@@ -86,6 +83,9 @@ MainWindow::MainWindow(sqlite3 *db, QWidget *parent)
     mainLayout->setStretch(1, 1);
     // Connect friend selection to messages box
     connect(friendsBox, &FriendsBox::friendSelected, messagesBox, &MessagesBox::selectFriend);
+    
+    // Connect send button to handler
+    connect(sendButton, &QPushButton::clicked, this, &MainWindow::onSendButtonClicked);
 
     showLoginWidget();
     connect(loginWidget, &LoginWidget::logged_in, this, &MainWindow::showMainCentralWidget);
@@ -141,4 +141,37 @@ void MainWindow::handlePacket() {
 MainWindow::~MainWindow()
 {
     // Qt will delete child widgets automatically
+}
+
+void MainWindow::onSendButtonClicked()
+{
+    // Check if a friend is selected
+    if (!friendsBox->hasSelectedFriend()) {
+        qDebug() << "No friend selected";
+        return;
+    }
+    
+    // Check if the selected friend is online
+    if (friendsBox->getSelectedFriendStatus() != FriendStatus::ONLINE) {
+        qDebug() << "Selected friend is not online";
+        return;
+    }
+    
+    // Get the message from the text box
+    QString message = rightTextBox->text().trimmed();
+    if (message.isEmpty()) {
+        qDebug() << "Message is empty";
+        return;
+    }
+    
+    // Get the selected friend's name
+    QString targetFriend = friendsBox->getSelectedFriendName();
+    
+    // Send the encrypted message
+    codeBox->encryptAndSendMessage(message, targetFriend);
+    
+    // Clear the text box
+    rightTextBox->clear();
+    
+    qDebug() << "Message sent to" << targetFriend;
 }

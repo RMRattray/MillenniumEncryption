@@ -9,7 +9,7 @@
 #include <QString>
 
 FriendsBox::FriendsBox(sqlite3 *db, QWidget *parent)
-    : QWidget(parent), database(db)
+    : QWidget(parent), database(db), selectedFriendId(-1)
 {
     layout = new QVBoxLayout(this);
     layout->setSpacing(5);
@@ -56,6 +56,7 @@ void FriendsBox::addFriend(int id, const QString &name, int status)
     
     connect(friendBox, &FriendBox::friendClicked, this, [this](int friendId) {
         qDebug() << "Friend clicked:" << friendId;
+        selectedFriendId = friendId;
         emit friendSelected(friendId);
     });
 }
@@ -208,4 +209,31 @@ void FriendBox::mousePressEvent(QMouseEvent *event)
         emit friendClicked(friendId);
     }
     QWidget::mousePressEvent(event);
+}
+
+// FriendsBox methods for getting selected friend information
+int FriendsBox::getSelectedFriendId() const
+{
+    return selectedFriendId;
+}
+
+QString FriendsBox::getSelectedFriendName() const
+{
+    if (selectedFriendId > 0 && friendWidgets.contains(selectedFriendId)) {
+        return friendWidgets[selectedFriendId]->friendName;
+    }
+    return QString();
+}
+
+int FriendsBox::getSelectedFriendStatus() const
+{
+    if (selectedFriendId > 0 && friendWidgets.contains(selectedFriendId)) {
+        return friendWidgets[selectedFriendId]->friendStatus;
+    }
+    return FriendStatus::OFFLINE;
+}
+
+bool FriendsBox::hasSelectedFriend() const
+{
+    return selectedFriendId > 0 && friendWidgets.contains(selectedFriendId);
 }

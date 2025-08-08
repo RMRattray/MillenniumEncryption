@@ -17,6 +17,8 @@ class CodeBox : public QWidget
 public:
     explicit CodeBox(QTcpSocket *socket, QWidget *parent = nullptr);
     ~CodeBox();
+    
+    void encryptAndSendMessage(QString message, QString target);
 
 private:
     QTcpSocket *sock;
@@ -26,7 +28,6 @@ private:
     std::shared_ptr<FullCodebook> current_codebook;
     QComboBox *codebookComboBox;
 
-    void encryptAndSendMessage(QString message, QString target);
     void addNewCodebook();
 };
 

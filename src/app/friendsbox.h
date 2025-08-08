@@ -20,6 +20,12 @@ public:
     void handlePacket(unsigned char *packet);
     void updateFriendStatus(const QString &username, int status);
     void addNewFriend(const QString &username, int status);
+    
+    // Get selected friend information
+    int getSelectedFriendId() const;
+    QString getSelectedFriendName() const;
+    int getSelectedFriendStatus() const;
+    bool hasSelectedFriend() const;
 
 signals:
     void friendSelected(int friendId);
@@ -29,6 +35,7 @@ private:
     QVBoxLayout *layout;
     QMap<int, FriendBox*> friendWidgets;
     QMap<QString, int> friendNameToId;
+    int selectedFriendId;
     
     void loadFriends();
     void addFriend(int id, const QString &name, int status);
@@ -44,6 +51,8 @@ public:
     void handlePacket(unsigned char *packet);
     void updateStatus(int status);
     
+    QString friendName;
+    int friendStatus;
 signals:
     void friendClicked(int friendId);
 
@@ -52,8 +61,6 @@ protected:
 
 private:
     int friendId;
-    QString friendName;
-    int friendStatus;
     QLabel *statusLabel;
 };
 

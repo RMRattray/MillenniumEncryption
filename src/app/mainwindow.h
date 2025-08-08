@@ -5,6 +5,7 @@
 #include "friendsbox.h"
 #include "requestsbox.h"
 #include "messagesbox.h"
+#include "codebox.h"
 #include <QMainWindow>
 #include <QWidget>
 #include <QLineEdit>
@@ -35,8 +36,7 @@ private:
     FriendsBox * friendsBox;
     RequestsBox *requestsBox;
     MessagesBox *messagesBox;
-    QLabel *codebookLabel;
-    QPushButton *viewCodebooksButton;
+    CodeBox *codeBox;
     QFrame *rightEmptyFrame;
     QLineEdit *rightTextBox;
     QPushButton *sendButton;
@@ -47,6 +47,9 @@ private:
     void showLoginWidget();
     void showMainCentralWidget(QString);
     void handlePacket();
+    
+private slots:
+    void onSendButtonClicked();
 };
 
 #endif
