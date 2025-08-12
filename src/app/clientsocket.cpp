@@ -117,11 +117,8 @@ void ClientSocketManager::sendMessage(QString friend_name, QString message)
     
     messageSend packet(message.toStdString(), friend_name.toStdString());
     unsigned char buffer[PACKET_BUFFER_SIZE];
-    int bytesWritten = packet.write_to_packet(buffer);
-    
-    if (bytesWritten > 0) {
-        sock->write(reinterpret_cast<const char*>(buffer), bytesWritten);
-    }
+    while (packet.write_to_packet(buffer)) sock->write(reinterpret_cast<const char*>(buffer), bytesWritten);
+    sock->write(reinterpret_cast<const char*>(buffer), bytesWritten);
 }
 
 // Private method to handle incoming packets and emit signals
@@ -165,6 +162,10 @@ void ClientSocketManager::handlePacket(char *packet)
         
         case MESSAGE_FORWARD: {
             messageForward response(reinterpret_cast<unsigned char*>(packet));
+            if (response.bytes_remaining) {
+                sock->read(buffer, PACKET_BUFFER_SIZE);
+                while(response.read_from_packet(buffer)) sock->read(buffer, PACKET_BUFFER_SIZE);
+            }
             emit mentionMessage(QString::fromStdString(response.sender), QString::fromStdString(response.message));
             break;
         }
