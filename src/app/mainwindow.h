@@ -25,9 +25,9 @@ public:
     explicit MainWindow(sqlite3 *db, QWidget *parent = nullptr);
     ~MainWindow();
 
+    LoginWidget *loginWidget;
 private:
     // Login screen widgets
-    LoginWidget *loginWidget;
 
     // Main central widget and its components
     QWidget *mainCentralWidget;
@@ -40,9 +40,6 @@ private:
     QFrame *rightEmptyFrame;
     QLineEdit *rightTextBox;
     QPushButton *sendButton;
-
-    QTcpSocket *sock;
-    sqlite3 *database;
 
     void showLoginWidget();
     void showMainCentralWidget(QString);

@@ -14,20 +14,20 @@ class MessagesBox : public QWidget
     Q_OBJECT
 
 public:
-    explicit MessagesBox(sqlite3 *db, QWidget *parent = nullptr);
+    explicit MessagesBox(QWidget *parent = nullptr);
     ~MessagesBox();
 
-    void selectFriend(int friendId);
+public slots:
+    void processMessages(vector<tuple<QString, bool>> messages, int id);
+    void addMessage(QString message, bool original, QString friend);
 
 private:
-    sqlite3 *database;
     QVBoxLayout *layout;
     QScrollArea *scrollArea;
     QWidget *scrollContent;
     QLabel *noSelectionLabel;
-    int currentFriendId;
+    int currentMinMessageId;
     
-    void loadMessages(int friendId);
     void clearMessages();
 };
 

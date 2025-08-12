@@ -18,10 +18,14 @@ public:
     explicit CodeBox(QTcpSocket *socket, QWidget *parent = nullptr);
     ~CodeBox();
     
-    void encryptAndSendMessage(QString message, QString target);
+public signals:
+    void requestMessageSend(QString message, QString recipient);
+    void reportDecryptedMessage(QString message, QString sender);
+public slots:
+    void encryptAndSendMessage(QString message, QString recipient);
+    void decryptAndReceiveMessage(QString message, QString sender);
 
 private:
-    QTcpSocket *sock;
     QVBoxLayout *layout;
     QMap<QString, std::shared_ptr<FullCodebook>> codebooks;
     QPushButton *addCodebookPushButton;

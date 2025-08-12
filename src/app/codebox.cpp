@@ -46,16 +46,16 @@ CodeBox::~CodeBox()
     // Qt will handle cleanup of child widgets
 }
 
-void CodeBox::encryptAndSendMessage(QString message, QString target)
+void CodeBox::encryptAndSendMessage(QString message, QString recipient)
 {
     if (!current_codebook) {
         qDebug() << "No codebook selected for encryption";
+        requestMessageSend(message, recipient);
         return;
     }
     
     // Convert QString to std::string for encryption
     std::string messageStr = message.toStdString();
-    std::string targetStr = target.toStdString();
     
     // Encrypt the message using the current codebook
     std::string encryptedMessage;
@@ -64,21 +64,28 @@ void CodeBox::encryptAndSendMessage(QString message, QString target)
     std::ostringstream cipherStream(encryptedMessage);
     encrypt(messageStream, cipherStream, *current_codebook);
     
-    // Create messageSend packet
-    messageSend packet(encryptedMessage, targetStr);
-    
-    // Write packet to buffer
-    unsigned char buffer[PACKET_BUFFER_SIZE];
-    packet.write_to_packet(buffer);
-    
-    // Send packet through socket
-    if (sock && sock->state() == QAbstractSocket::ConnectedState) {
-        sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
-        sock->flush();
-        qDebug() << "Encrypted message sent to" << target;
-    } else {
-        qDebug() << "Socket not connected, cannot send message";
+    requestMessageSend(QString::fromStdString(encryptedMessage), recipient);
+}
+
+void CodeBox::decryptAndReceiveMessage(QString message, QString sender)
+{
+    if (!current_codebook) {
+        qDebug() << "No codebook selected for decryption";
+        reportDecryptedMessage(message, recipient);
+        return;
     }
+    
+    // Convert QString to std::string for encryption
+    std::string messageStr = message.toStdString();
+    
+    // Encrypt the message using the current codebook
+    std::string decryptedMessage;
+    
+    std::istringstream cipherStream(messageStr);
+    std::ostringstream plainStream(decryptedMessage);
+    decrypt(cipherStream, plainStream, *current_codebook);
+    
+    reportDecryptedMessage(QString::fromStdString(decryptedMessage), sender);
 }
 
 void CodeBox::addNewCodebook()

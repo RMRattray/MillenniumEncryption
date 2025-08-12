@@ -133,13 +133,15 @@ void ClientSocketManager::handlePacket(char *packet)
     switch (packetType) {
         case ACCOUNT_RESULT: {
             createAccountResponse response(reinterpret_cast<unsigned char*>(packet));
-            emit mentionAccountResult(response.success, QString::fromStdString(response.reason));
+            if (response.success) emit mentionLoginSuccess();
+            else emit mentionAccountResult(QString::fromStdString(response.reason));
             break;
         }
         
         case LOGIN_RESULT: {
             loginResult response(reinterpret_cast<unsigned char*>(packet));
-            emit mentionLoginResult(response.success, QString::fromStdString(response.reason));
+            if (response.success) emit mentionLoginSuccess();
+            else emit mentionLoginResult(QString::fromStdString(response.reason));
             break;
         }
         

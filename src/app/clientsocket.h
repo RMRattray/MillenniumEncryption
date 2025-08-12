@@ -12,7 +12,7 @@ public:
     explicit ClientSocketManager(QString server_address, QObject *parent = nullptr);
     ~ClientSocketManager();
 
-// slots
+public slots:
     void sendAccountRequest(QString user_name, QString password);
     void sendLoginRequest(QString user_name, QString password);
     void sendFriendRequest(QString friend);
@@ -20,8 +20,9 @@ public:
     void sendMessage(QString friend, QString message);
 
 signals:
-    void mentionAccountResult(bool success, QString reason);
-    void mentionLoginResult(bool success, QString reason);
+    void mentionAccountResult(QString reason);
+    void mentionLoginResult(QString reason);
+    void mentionLoginSuccess();
     void mentionFriendStatus(QString friend, FriendStatus status);
     void mentionFriendRequest(QString friend);
     void mentionFriendRequestResponse(QString friend, FriendRequestResponse response);
@@ -30,6 +31,7 @@ signals:
 private:
     void handlePacket(char * packet);
     QTcpSocket * sock;
+    QString connectedUser;
 };
 
 #endif 

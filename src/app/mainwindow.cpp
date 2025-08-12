@@ -13,23 +13,11 @@
 #include <QSpacerItem>
 #include <QTcpSocket>
 
-MainWindow::MainWindow(sqlite3 *db, QWidget *parent)
-    : QMainWindow(parent), database(db)
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
 {
-
-    // Set up connection to server
-    sock = new QTcpSocket();
-    QAbstractSocket::SocketState s = sock->state();
-    qDebug() << "About to attempt to connect";
-    sock->connectToHost("127.0.0.1", 1999);
-    if (sock->waitForConnected(3000))
-        qDebug() << "Connected to server!\n";
-    else {
-        qDebug() << "Failed to connect to server\n";
-    }
-
     // Login widget takes up the entire screen
-    loginWidget = new LoginWidget(this, sock);
+    loginWidget = new LoginWidget(this);
 
     mainCentralWidget = new QWidget(this);
     QHBoxLayout *mainLayout = new QHBoxLayout(mainCentralWidget);
@@ -88,8 +76,6 @@ MainWindow::MainWindow(sqlite3 *db, QWidget *parent)
     connect(sendButton, &QPushButton::clicked, this, &MainWindow::onSendButtonClicked);
 
     showLoginWidget();
-    connect(loginWidget, &LoginWidget::logged_in, this, &MainWindow::showMainCentralWidget);
-    connect(sock, &QTcpSocket::readyRead, this, &MainWindow::handlePacket);
 }
 
 void MainWindow::showLoginWidget()

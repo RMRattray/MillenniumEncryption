@@ -50,9 +50,35 @@ ClientDatabaseManager::~ClientDatabaseManager()
     }
 }
 
+bool ClientDatabaseManager::hasFriend(QString name)
+{
+    if (!database) return false;
+
+    std::string namechars = name.toStdString();
+
+    const char *sql_chk = "SELECT COUNT(*) FROM friends WHERE friend_name = ? ;";
+    sqlite3_stmt *stmt_chk;
+    int rc = sqlite3_prepare_v2(database, sql_chk, -1, &stmt_chk, nullptr);
+    if (rc != SQLITE_OK) {
+        qDebug() << "Failed to prepare statement:" << sqlite3_errmsg(database);
+        return;
+    }
+    sqlite3_bind_text(stmt_chk, 1, namechars.c_str(), -1, SQLITE_STATIC);
+    rc = sqlite3_step(stmt_chk);
+    int ans = sqlite3_column_int(stmt_chk, 0);
+    sqlite3_finalize(stmt_chk);
+
+    return ans;
+}
+
 void ClientDatabaseManager::insertFriend(QString name)
 {
     if (!database) return;
+
+    if (hasFriend(name)) {
+        qDebug() << "Caution!  Attempted to add duplicate friend " << name << "to database.";
+        return;
+    }
 
     const char* sql = "INSERT INTO friends (friend_name) VALUES (?)";
     sqlite3_stmt* stmt;
@@ -63,7 +89,7 @@ void ClientDatabaseManager::insertFriend(QString name)
         return;
     }
 
-    sqlite3_bind_text(stmt, 1, name.toUtf8().constData(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 1, namechars.c_str(), -1, SQLITE_STATIC);
     
     rc = sqlite3_step(stmt);
     if (rc != SQLITE_DONE) {
@@ -76,6 +102,12 @@ void ClientDatabaseManager::insertFriend(QString name)
 void ClientDatabaseManager::insertMessage(QString message, bool original, QString friend)
 {
     if (!database) return;
+
+    if (friend == "" && original) friend = queried_friend;
+    else if (friend == "" && !original) {
+        qDebug() << "Error!  Sending message with specified friend";
+        return;
+    }
 
     // First get the friend_id from the friends table
     const char* getFriendIdSql = "SELECT id FROM friends WHERE friend_name = ?";
@@ -121,6 +153,9 @@ void ClientDatabaseManager::insertMessage(QString message, bool original, QStrin
     }
 
     sqlite3_finalize(insertStmt);
+
+    if (original) reportOutgoingMessage(message, friend);
+    else if (friend == queried_friend) reportIncomingMessage(message, false);
 }
 
 void ClientDatabaseManager::queryFriends()
@@ -175,7 +210,9 @@ void ClientDatabaseManager::queryMessages(QString friend, int count, int before)
         return;
     }
 
-    // Query messages
+    // Query messagesvoid loadMessages(int friendId);
+    queried_friend = friend;
+    
     std::vector<std::tuple<QString, bool>> messages;
     int firstMessageId = 0;
     

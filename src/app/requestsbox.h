@@ -25,13 +25,16 @@ public:
 
     void handlePacket(unsigned char *packet);
     QString my_name;
+public signals:
+    requestFriendRequest(QString name);
+    requestFriendResponse(QString name, FriendRequestResponse resp);
+    announceNewFriend(QString name);
 
 private slots:
-    void createFriendRequest();
+    processFriendRequest(QString name);
+    processFriendResponse(QString name, FriendRequestResponse resp);
 
 private:
-    sqlite3 *database;
-    QTcpSocket *socket;
     QVBoxLayout *layout;
     QMap<QString, RequestBox*> requestWidgets;
     

@@ -56,9 +56,11 @@ void MessagesBox::selectFriend(int friendId)
     loadMessages(friendId);
 }
 
-void MessagesBox::loadMessages(int friendId)
+void MessagesBox::processMessages(vector<tuple<QString, bool>> messages, int id)
 {
     clearMessages();
+
+    currentMinMessageId = id;
     
     if (friendId <= 0) {
         scrollArea->hide();
@@ -66,47 +68,16 @@ void MessagesBox::loadMessages(int friendId)
         return;
     }
     
-    // Get friend name for display
-    QString friendName;
-    const char *nameSql = "SELECT friend_name FROM friends WHERE id = ?";
-    sqlite3_stmt *nameStmt;
-    int rc = sqlite3_prepare_v2(database, nameSql, -1, &nameStmt, nullptr);
-    if (rc == SQLITE_OK) {
-        sqlite3_bind_int(nameStmt, 1, friendId);
-        if (sqlite3_step(nameStmt) == SQLITE_ROW) {
-            friendName = QString::fromUtf8((const char*)sqlite3_column_text(nameStmt, 0));
-        }
-    }
-    sqlite3_finalize(nameStmt);
-    
-    // Load messages for this friend
-    const char *sql = "SELECT message, original FROM messages WHERE friend_id = ? ORDER BY id";
-    sqlite3_stmt *stmt;
-    
-    rc = sqlite3_prepare_v2(database, sql, -1, &stmt, nullptr);
-    if (rc != SQLITE_OK) {
-        qDebug() << "Failed to prepare statement:" << sqlite3_errmsg(database);
-        return;
-    }
-    
-    sqlite3_bind_int(stmt, 1, friendId);
-    
-    bool hasMessages = false;
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        const char *message = (const char*)sqlite3_column_text(stmt, 0);
-        bool isOriginal = sqlite3_column_int(stmt, 1) != 0;
-        
-        MessageBox *messageBox = new MessageBox(QString::fromUtf8(message), isOriginal, scrollContent);
-        scrollContent->layout()->addWidget(messageBox);
-        hasMessages = true;
-    }
-    
-    sqlite3_finalize(stmt);
+    bool hasMessages = messages.size();
     
     if (hasMessages) {
         // Show scroll area and hide no selection label
         scrollArea->show();
         noSelectionLabel->hide();
+
+        for (&message : messages) {
+            addMessage(get<0>message, get<1>message);
+        }
         
         // Scroll to the bottom to show latest messages
         QTimer::singleShot(100, [this]() {
@@ -123,6 +94,11 @@ void MessagesBox::loadMessages(int friendId)
         scrollArea->show();
         noSelectionLabel->hide();
     }
+}
+
+void MessagesBox::addMessage(QString message, bool original) {
+    MessageBox *messageBox = new MessageBox(message, original, scrollContent);
+    scrollContent->layout()->addWidget(messageBox);
 }
 
 void MessagesBox::clearMessages()

@@ -14,11 +14,13 @@ public:
     explicit ClientDatabaseManager(QObject *parent = nullptr);
     ~ClientDatabaseManager();
 
+    bool hasFriend(QString name);
+
     // inserts a friend with the given name into the friends database
     void insertFriend(QString name);
 
     // inserts a message with the given text, originality, and attributed friend into the messages database
-    void insertMessage(QString message, bool original, QString friend);
+    void insertMessage(QString message, bool original, QString friend = "");
 
     // requests that a vector of the names of all currently known friends
     // be retrieved and sent by signal outputFriendList
@@ -27,12 +29,15 @@ public:
     // requests that the last *count* messages from the friend chosen
     // with ID less than before (or the last ten at all, if before is zero)
     // be retrieved and send by outputMessageQuery
-    void queryMessages(QString friend, int count, int before);
+    void queryMessages(int friend_id, int count = 10, int before = 0);
     
 signals:
     void outputFriendList(std::vector<QString> friends);
     void outputMessageQuery(std::vector<std::tuple<QString, bool>> messages, int first_message_id);
+    void reportIncomingMessage(QString message, bool original);
+    void reportOutgoingMessage(QString message, QString recipient);
 
 private:
     sqlite3 * database;
+    QString queried_friend = "";
 };

@@ -8,29 +8,41 @@ int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
 
-    // Create SQLite database
-    sqlite3 *db;
-    int rc = sqlite3_open("PIT.db", &db);
-    if (rc) {
-        std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
-        return 1;
-    }
+    ClientSocketManager sock();
+    ClientDatabaseManager db();
+    MainWindow window();
 
-    // Set up database if it doesn't exist    
-    if (sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS friends (id INTEGER PRIMARY KEY AUTOINCREMENT, friend_name TEXT NOT NULL, status INTEGER NOT NULL)", nullptr, nullptr, nullptr) ||
-        sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, friend_id INTEGER NOT NULL, message TEXT NOT NULL, original BOOLEAN NOT NULL, FOREIGN KEY (friend_id) REFERENCES friends (id))", nullptr, nullptr, nullptr)) {
-        std::cerr << "SQL error creating tables: " << sqlite3_errmsg(db) << std::endl;
-        sqlite3_close(db);
-        return 1;
-    }
+    connect(sock, &ClientSocketManager::mentionLoginSuccess, window, &MainWindow::showMainCentralWidget);
+    connect(sock, &ClientSocketManager::mentionAccountResult, window->loginWidget, &LoginWidget::handleFailure);
+    connect(sock, &ClientSocketManager::mentionLoginResult, window->loginWidget, &LoginWidget::handleFailure);
+    
+    connect(window->loginWidget, &LoginWidget::requestAccount, sock, &ClientSocketManager::sendAccountRequest);
+    connect(window->loginWidget, &LoginWidget::requestLogin, sock, &ClientSocketManager::sendLoginRequest);
 
-    MainWindow window(db);
+    connect(sock, &ClientSocketManager::mentionLoginSuccess, db, &ClientDatabaseManager::queryFriends);
+    connect(db, &ClientDatabaseManager::outputFriendList, window->friendsBox, &FriendsBox::processFriendList);
+    
+    connect(sock, &ClientSocketManager::mentionFriendStatus, window->friendsBox, &FriendsBox::updateFriendStatus);
+    connect(window->requestsBox, &RequestsBox::requestFriendRequest, sock, &ClientSocketManager::sendFriendRequest);
+    connect(window->requestsBox, &RequestsBox::requestFriendResponse, sock, &ClientSocketManager::sendFriendRequest);
+    connect(sock, &ClientSocketManager::mentionFriendRequest, window->requestsBox, &RequestsBox::processFriendRequest);
+    connect(sock, &ClientSocketManager::mentionFriendRequestResponse, window->requestsBox, &RequestsBox::processFriendResponse);
+    connect(window->requestsBox, &RequestsBox::announceNewFriend, window->friendsBox, &FriendsBox::addNewFriend);
+
+    connect(sock, &ClientSocketManager::mentionMessage, window->codeBox, &CodeBox::decryptAndReceiveMessage);
+    connect(window->codeBox, &CodeBox::requestMessageSend, sock, &ClientSocketManager::sendMessage);
+
+    connect(db, &ClientDatabaseManager::outputMessageQuery, window->messagesBox, &MessagesBox::processMessages);
+    connect(window->codeBox, &CodeBox::reportDecryptedMessage, db, &ClientDatabaseManager::insertMessage);
+    connect(db, &ClientDatabaseManager::reportIncomingMessage, window->messagesBox, &MessagesBox::addMessage);
+    connect(window->friendsBox, &FriendsBox::friendSelected, db, &ClientDatabaseManager::queryMessages);
+
+    connect(window->sendButton, &QPushButton::clicked, app, [db, window](){ db->insertMessage(window->rightTextBox->text(), true); } );
+    connect(db, &ClientDatabaseManager::reportOutgoingMessage, window->codeBox, &CodeBox::encryptAndSendMessage);
+
     window.show();
 
     int result = app.exec();
-    
-    // Close database
-    sqlite3_close(db);
     
     return result;
 }

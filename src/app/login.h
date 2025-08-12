@@ -11,17 +11,19 @@ class LoginWidget : public QWidget {
     Q_OBJECT
 
 public:
-    explicit LoginWidget(QWidget *parent = nullptr, QTcpSocket * s = nullptr);
+    explicit LoginWidget(QWidget *parent = nullptr);
     ~LoginWidget();
-    QTcpSocket *sock;
     void handlePacket(unsigned char * packet);
-    QLineEdit *usernameEdit;
 signals:
-    void logged_in(QString username);
+    void requestAccount(QString username, QString password);
+    void requestLogin(QString username, QString password);
+slots:
+    void handleFailure(QString reason);
 private slots:
     void swapLoginPurpose();
     void login();
 private:
+    QLineEdit *usernameEdit;
     QLineEdit *passwordEdit;
     QPushButton *createAccountInstead;
     bool creating_account;

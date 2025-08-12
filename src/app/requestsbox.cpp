@@ -31,19 +31,13 @@ RequestsBox::~RequestsBox()
     // Qt will delete child widgets automatically
 }
 
-void RequestsBox::handlePacket(unsigned char *packet)
-{
-    switch (*packet) {
-        case PacketFromServerType::FRIEND_REQUEST_FORWARD: {
-            friendRequestForward forward(packet);
-            QString from = QString::fromStdString(forward.from);
-            addRequest(from, true); // Has buttons for Accept/Reject/Hide
-            break;
-        }
-        case PacketFromServerType::FRIEND_REQUEST_RESPONSE: {
-            friendRequestResponse response(packet);
+void RequestsBox::processFriendRequest(QString name) {
+    addRequest(name, true);
+}
+
+void RequestsBox::processFriendResponse(QString name, FriendRequestResponse resp) {
             QMessageBox msgBox;
-            switch (response.response) {
+            switch (resp) {
                 case FriendRequestResponse::DOES_NOT_EXIST:
                     msgBox.setText(QString::fromStdString("No user named '" + response.to + "'."));
                     msgBox.exec();
@@ -54,16 +48,15 @@ void RequestsBox::handlePacket(unsigned char *packet)
                 break;
                 case FriendRequestResponse::PENDING:
                 qDebug() << "Adding request to " << response.to;
-                    addRequest(QString::fromStdString(response.to), false);
+                    addRequest(name, false);
                 break;
                 case FriendRequestResponse::ACCEPT:
+                    announceNewFriend(name);
                 case FriendRequestResponse::REJECT:
                 qDebug() << "Removing request from " << response.from << " to " << response.to;
-                    removeRequest(QString::fromStdString(response.to));
+                    removeRequest(name);
                     break;
             }
-            break;
-        }
     }
 }
 
@@ -78,21 +71,18 @@ void RequestsBox::addRequest(const QString &from, bool hasButtons)
     layout->insertWidget(layout->count() - 1, requestBox); // Insert before the button
     
     connect(requestBox, &RequestBox::acceptRequest, this, [this](const QString &username) {
-        qDebug() << "About to send the friend request acknowledgement packet";
-        sendFriendRequestAcknowledge(my_name, username, FriendRequestResponse::ACCEPT);
-        qDebug() << "About to remove the request from the list";
+        requestFriendResponse(username, FriendRequestResponse::ACCEPT);
+        announceNewFriend(username);
         removeRequest(username);
     });
     
     connect(requestBox, &RequestBox::rejectRequest, this, [this](const QString &username) {
-        qDebug() << "About to send the friend request acknowledgement packet";
-        sendFriendRequestAcknowledge(my_name, username, FriendRequestResponse::REJECT);
-        qDebug() << "About to remove the request from the list";
+        requestFriendResponse(username, FriendRequestResponse::REJECT);
         removeRequest(username);
     });
     
     connect(requestBox, &RequestBox::hideRequest, this, [this](const QString &username) {
-        sendFriendRequestAcknowledge(my_name, username, FriendRequestResponse::HIDE);
+        requestFriendResponse(username, FriendRequestResponse::HIDE);
         removeRequest(username);
     });
 }
@@ -107,48 +97,27 @@ void RequestsBox::removeRequest(const QString &from)
     }
 }
 
-void RequestsBox::sendFriendRequestAcknowledge(const QString &to, const QString &from, int response)
-{
-    friendRequestAcknowledge packet(to.toStdString(), from.toStdString(), static_cast<FriendRequestResponse>(response));
-    unsigned char buffer[PACKET_BUFFER_SIZE + 1];
-    buffer[PACKET_BUFFER_SIZE] = 0;
-    packet.write_to_packet(buffer);
-    
-    if (socket && socket->state() == QAbstractSocket::ConnectedState) {
-        socket->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
-    }
-}
-
-void RequestsBox::sendFriendRequestSend(const QString &target)
-{
-    friendRequestSend packet(target.toStdString());
-    unsigned char buffer[PACKET_BUFFER_SIZE + 1];
-    buffer[PACKET_BUFFER_SIZE] = 0;
-    packet.write_to_packet(buffer);
-    
-    if (socket && socket->state() == QAbstractSocket::ConnectedState) {
-        socket->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
-    }
-}
-
 void RequestsBox::createFriendRequest()
 {
     FriendRequestDialog dialog(this);
     if (dialog.exec() == QDialog::Accepted) {
         QString username = dialog.getUsername();
 
-        std::string target_name = username.toStdString();
-        const char *sql_chk = "SELECT COUNT(*) FROM friends WHERE friend_name = ? ;";
-        sqlite3_stmt *stmt_chk;
-        int rc = sqlite3_prepare_v2(database, sql_chk, -1, &stmt_chk, nullptr);
-        if (rc != SQLITE_OK) {
-            qDebug() << "Failed to prepare statement:" << sqlite3_errmsg(database);
-            return;
-        }
-        sqlite3_bind_text(stmt_chk, 1, target_name.c_str(), -1, SQLITE_STATIC);
-        rc = sqlite3_step(stmt_chk);
-        int ans = sqlite3_column_int(stmt_chk, 0);
-        sqlite3_finalize(stmt_chk);
+        // TODO:  Access database here in such a way as to prevent sending
+        // friend requests to friends
+
+        // std::string target_name = username.toStdString();
+        // const char *sql_chk = "SELECT COUNT(*) FROM friends WHERE friend_name = ? ;";
+        // sqlite3_stmt *stmt_chk;
+        // int rc = sqlite3_prepare_v2(database, sql_chk, -1, &stmt_chk, nullptr);
+        // if (rc != SQLITE_OK) {
+        //     qDebug() << "Failed to prepare statement:" << sqlite3_errmsg(database);
+        //     return;
+        // }
+        // sqlite3_bind_text(stmt_chk, 1, target_name.c_str(), -1, SQLITE_STATIC);
+        // rc = sqlite3_step(stmt_chk);
+        // int ans = sqlite3_column_int(stmt_chk, 0);
+        // sqlite3_finalize(stmt_chk);
 
         QMessageBox msgBox;
         if (ans) {
@@ -162,7 +131,7 @@ void RequestsBox::createFriendRequest()
             msgBox.exec();
         }
         else {
-            sendFriendRequestSend(username);
+            requestFriendRequest(username);
         }
     }
 }
@@ -210,12 +179,6 @@ RequestBox::RequestBox(const QString &username, bool hasButtons, QWidget *parent
         layout->addWidget(statusLabel);
         is_pending = true;
     }
-}
-
-void RequestBox::handlePacket(unsigned char *packet)
-{
-    // This method is not used for RequestBox, but kept for consistency
-    // Packet handling is done at the RequestsBox level
 }
 
 void RequestBox::onAcceptClicked()
