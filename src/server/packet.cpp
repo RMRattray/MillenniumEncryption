@@ -109,29 +109,51 @@ int friendRequestAcknowledge::write_to_packet(unsigned char * buffer) {
 
 // MessageSend implementations
 messageSend::messageSend(std::string msg, std::string recip) {
-    if (msg.size() + recip.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("Message or recipient is too long");
     message = msg;
     recipient = recip;
     type = PacketToServerType::MESSAGE_SEND;
+    bytes_remaining = msg.size();
 }
 
 messageSend::messageSend(unsigned char * buffer) {
     type = PacketToServerType::MESSAGE_SEND;
     if (*buffer != type) throw std::runtime_error("Attempting to read message send from wrong sort of packet");
     if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
-    message = std::string((char *)buffer + 1);
-    if (message.size() > PACKET_BUFFER_SIZE - 4) throw std::runtime_error("Message is too long");
-    recipient = std::string((char *)buffer + 2 + message.size());
+    
+    bytes_remaining = *(uint32_t *)(buffer + 4);
+    recipient = std::string((char *)buffer + 8);
+    uint32_t readable = min(PACKET_BUFFER_SIZE - 9 - recipient.size(), bytes_remaining);
+    message = std::string((char *)buffer + 9 + recipient.size(), readable);
+    bytes_remaining -= readable;
 }
 
 int messageSend::write_to_packet(unsigned char * buffer) {
-    if (message.size() + recipient.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("Message or recipient is too long");
     *buffer = type;
-    message.copy((char *)buffer + 1, message.size());
-    *(buffer + 1 + message.size()) = 0;
-    recipient.copy((char *)buffer + 2 + message.size(), recipient.size());
-    *(buffer + 2 + message.size() + recipient.size()) = 0;
-    return 0;
+    *((uint32_t *)(buffer + 4)) = bytes_remaining;
+
+    uint32_t writeable;
+    if (bytes_remaining == message.size()) {
+        recipient.copy((char *)buffer + 8, recipient.size());
+        *(buffer + 8 + recipient.size()) = 0;
+        writeable = PACKET_BUFFER_SIZE - 9 - recipient.size();
+    }
+    else writeable = PACKET_BUFFER_SIZE - 8;
+
+    if (writeable > message.size()) writeable = message.size();
+    message.substr(message.size() - bytes_remaining, writeable).copy((char *)buffer + 9, writeable);
+    bytes_remaining -= writeable
+    
+    return bytes_remaining;
+}
+
+int messageSend::read_from_packet(unsigned char * buffer) {
+    if (*buffer != type) throw std::runtime_error("Attempting to read message send from wrong sort of packet");
+    if (bytes_remaining != *(uint32_t *)(buffer + 4)) throw std::runtime_error("Packet length inconsistent");
+    uint32_t readable = min(PACKET_BUFFER_SIZE - 8, bytes_remaining);
+    message += std::string((char *)buffer + 8, readable);
+    bytes_remaining -= readable;
+
+    return bytes_remaining;
 }
 
 createAccountResponse::createAccountResponse(bool s, std::string r) {
@@ -269,29 +291,51 @@ int friendRequestResponse::write_to_packet(unsigned char * buffer) {
 
 // MessageForward implementations
 messageForward::messageForward(std::string msg, std::string send) {
-    if (msg.size() + send.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("Message or sender is too long");
     message = msg;
     sender = send;
     type = PacketFromServerType::MESSAGE_FORWARD;
+    bytes_remaining = msg.size();
 }
 
 messageForward::messageForward(unsigned char * buffer) {
     type = PacketFromServerType::MESSAGE_FORWARD;
     if (*buffer != type) throw std::runtime_error("Attempting to read message forward from wrong sort of packet");
     if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
-    message = std::string((char *)buffer + 1);
-    if (message.size() > PACKET_BUFFER_SIZE - 4) throw std::runtime_error("Message is too long");
-    sender = std::string((char *)buffer + 2 + message.size());
+    
+    bytes_remaining = *(uint32_t *)(buffer + 4);
+    sender = std::string((char *)buffer + 8);
+    uint32_t readable = min(PACKET_BUFFER_SIZE - 9 - recipient.size(), bytes_remaining);
+    message = std::string((char *)buffer + 9 + recipient.size(), readable);
+    bytes_remaining -= readable;
 }
 
 int messageForward::write_to_packet(unsigned char * buffer) {
-    if (message.size() + sender.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("Message or sender is too long");
     *buffer = type;
-    message.copy((char *)buffer + 1, message.size());
-    *(buffer + 1 + message.size()) = 0;
-    sender.copy((char *)buffer + 2 + message.size(), sender.size());
-    *(buffer + 2 + message.size() + sender.size()) = 0;
-    return 0;
+    *(uint32_t *)(buffer + 4) = bytes_remaining;
+
+    uint32_t writeable;
+    if (bytes_remaining == message.size()) {
+        sender.copy((char *)buffer + 8; sender.size());
+        *(buffer + 8 + sender.size()) == 0;
+        writeable = PACKET_BUFFER_SIZE - 9 - sender.size();
+    }
+    else writeable = PACKET_BUFFER_SIZE - 8;
+
+    if (writeable > message.size()) writeable = message.size();
+    message.substr(message.size() - bytes_remaining, writeable).copy((char *)buffer + 9, writeable);
+    bytes_remaining -= writeable;
+
+    return bytes_remaining;
+}
+
+int messageForward::read_from_packet(unsigned char * buffer) {
+    if (*buffer  != type) throw std::runtime_error("Attempting to read message forward from wrong type of packet");
+    if (bytes_remaining != *(uint32_t *)(buffer + 4)) throw std::runtime_error("Packet length inconsistent");
+    uint32_t readable = min(PACKET_BUFFER_SIZE - 8, bytes_remaining);
+    message += std::string((char *)buffer + 8, readable);
+    bytes_remaining -= readable;
+
+    return bytes_remaining;
 }
 
 // MessageResponse implementations

@@ -97,6 +97,8 @@ class messageSend : public packetToServer {
     int write_to_packet(unsigned char * buffer);
     std::string message;
     std::string recipient;
+    uint32_t bytes_remaining;
+    int read_from_packet(unsigned char * buffer);
 };
 
 // PacketFromServer derivatives
@@ -153,6 +155,8 @@ class messageForward : public packetFromServer {
     int write_to_packet(unsigned char * buffer);
     std::string message;
     std::string sender;
+    uint32_t bytes_remaining;
+    int read_from_packet(unsigned char * buffer);
 };
 
 class messageResponse : public packetFromServer {
