@@ -3,12 +3,18 @@
 
 #include "login.h"
 #include "friendsbox.h"
+#include "requestsbox.h"
+#include "messagesbox.h"
+#include "clientsocket.h"
+#include "database.h"
+#include "codebox.h"
 #include <QMainWindow>
 #include <QWidget>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QLabel>
 #include <QFrame>
+#include <QString>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <sqlite3.h>
@@ -18,30 +24,26 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(sqlite3 *db, QString server_address, QWidget *parent = nullptr);
+    explicit MainWindow(QString server_address, QWidget *parent = nullptr);
     ~MainWindow();
 
-private:
-    // Login screen widgets
-    LoginWidget *loginWidget;
+    void showMainCentralWidget();
+    void showLoginWidget();
 
-    // Main central widget and its components
+    LoginWidget *loginWidget;
     QWidget *mainCentralWidget;
     QFrame *leftFrame;
     QFrame *rightFrame;
     FriendsBox * friendsBox;
-    QLabel *codebookLabel;
-    QPushButton *viewCodebooksButton;
+    RequestsBox *requestsBox;
+    MessagesBox *messagesBox;
+    CodeBox *codeBox;
     QFrame *rightEmptyFrame;
     QLineEdit *rightTextBox;
     QPushButton *sendButton;
 
-    QTcpSocket *sock;
-    sqlite3 *database;
-
-    void showLoginWidget();
-    void showMainCentralWidget();
-    void handlePacket();
+    ClientSocketManager * sock;
+    ClientDatabaseManager * db;
 };
 
 #endif

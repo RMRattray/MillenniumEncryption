@@ -1,6 +1,4 @@
 #include "login.h"
-#include "packet.h"
-#include <iostream>
 #include <QWidget>
 #include <QLineEdit>
 #include <QPushButton>
@@ -10,7 +8,7 @@
 #include <QDebug>
 #include <QString>
 
-LoginWidget::LoginWidget(QWidget *parent, QTcpSocket *s) : QWidget(parent) {
+LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent) {
     // Login widgets
     QVBoxLayout *loginLayout = new QVBoxLayout(this);
     QLabel *userLabel = new QLabel("Username", this);
@@ -23,7 +21,6 @@ LoginWidget::LoginWidget(QWidget *parent, QTcpSocket *s) : QWidget(parent) {
     createAccountInstead->setFlat(true);
     creating_account = false;
     message = new QLabel("", this);
-    sock = s; // do not delete if this widget is deleted
 
     // Layout is one big column for now
     loginLayout->addStretch();
@@ -61,41 +58,11 @@ void LoginWidget::swapLoginPurpose() {
 }
 
 void LoginWidget::login() {
-    if (sock->state() != QAbstractSocket::SocketState::ConnectedState) {
-        qDebug() << "Unable to log in - not connected\n";
-        return;
-    }
-    unsigned char packet[PACKET_BUFFER_SIZE];
-    packetToServer * req;
-    if (creating_account) req = new createAccountRequest(usernameEdit->text().toStdString(), passwordEdit->text().toStdString());
-    else req = new loginRequest(usernameEdit->text().toStdString(), passwordEdit->text().toStdString());    
-    req->write_to_packet(packet);
-    sock->write((char *)packet, PACKET_BUFFER_SIZE);
-    qDebug() << "Should have sent packet";
-    delete req;    
+    if (creating_account) emit requestAccount(usernameEdit->text(), passwordEdit->text());
+    else emit requestLogin(usernameEdit->text(), passwordEdit->text());
 }
 
-void LoginWidget::handlePacket(unsigned char * packet) {
-    packetFromServer * resp;
-    createAccountResponse * car = NULL;
-    loginResult * lgr = NULL;
-    qDebug() << "Login widget received a packet";
-    switch (*packet) {
-        case PacketFromServerType::ACCOUNT_RESULT:
-            resp = new createAccountResponse(packet);
-            car = dynamic_cast<createAccountResponse *>(resp);
-            qDebug() << "Processing packet";
-            if (car->success) logged_in();
-            else message->setText(QString::fromStdString("Failed to create account: " + car->reason));
-        break;
-        case PacketFromServerType::LOGIN_RESULT:
-            resp = new loginResult(packet);
-            lgr = dynamic_cast<loginResult *>(resp);
-            if (lgr->success) logged_in();
-            else message->setText(QString::fromStdString("Login failed: " + lgr->reason));
-        break;
-        default:
-        qDebug() << "Invalid packet sent to login widget";
-    }
-    delete resp;
+void LoginWidget::handleFailure(QString reason) {
+    if (creating_account) message->setText("Failed to create account: " + reason);
+    else message->setText("Failed to log in: " + reason);
 }

@@ -1,6 +1,13 @@
 #include "mainwindow.h"
+#include "clientsocket.h"
+#include "database.h"
+#include "codebox.h"
+#include "friendsbox.h"
+#include "messagesbox.h"
+#include "requestsbox.h"
 #include "login.h"
 #include "packet.h"
+#include "../server/packet.h"
 #include <QMainWindow>
 #include <QLineEdit>
 #include <QPushButton>
@@ -12,31 +19,12 @@
 #include <QSpacerItem>
 #include <QTcpSocket>
 
-MainWindow::MainWindow(sqlite3 *db, QString server_address, QWidget *parent)
-    : QMainWindow(parent), database(db)
+MainWindow::MainWindow(QString server_address, QWidget *parent)
+    : QMainWindow(parent)
 {
-    sock = new QTcpSocket();
-    QAbstractSocket::SocketState s = sock->state();
-    qDebug() << "About to attempt to connect";
-    sock->connectToHost(server_address, 1999);
-    if (sock->waitForConnected(3000))
-        qDebug() << "Connected to server!\n";
-    else {
-        qDebug() << "Failed to connect to server\n";
-    }
-    showLoginWidget();
-    connect(sock, &QTcpSocket::readyRead, this, &MainWindow::handlePacket);
-}
+    // Login widget takes up the entire screen
+    loginWidget = new LoginWidget(this);
 
-void MainWindow::showLoginWidget()
-{
-    loginWidget = new LoginWidget(this, sock);
-    setCentralWidget(loginWidget);
-    connect(loginWidget, &LoginWidget::logged_in, this, &MainWindow::showMainCentralWidget);
-}
-
-void MainWindow::showMainCentralWidget()
-{
     mainCentralWidget = new QWidget(this);
     QHBoxLayout *mainLayout = new QHBoxLayout(mainCentralWidget);
     // Left frame
@@ -44,26 +32,35 @@ void MainWindow::showMainCentralWidget()
     leftFrame->setFrameShape(QFrame::StyledPanel);
     leftFrame->setFixedWidth(200);
     QVBoxLayout *leftLayout = new QVBoxLayout(leftFrame);
-    friendsBox = new FriendsBox(database, leftFrame);
+    
+    // Add FriendsBox and RequestsBox
+    friendsBox = new FriendsBox(leftFrame);
     leftLayout->addWidget(friendsBox);
+    
+    requestsBox = new RequestsBox(leftFrame);
+    leftLayout->addWidget(requestsBox);
+    
     leftLayout->addSpacing(10);
-    codebookLabel = new QLabel("Codebook: NONE", leftFrame);
-    codebookLabel->setFixedHeight(30);
-    leftLayout->addWidget(codebookLabel);
-    viewCodebooksButton = new QPushButton("View codebooks", leftFrame);
-    viewCodebooksButton->setFixedHeight(30);
-    leftLayout->addWidget(viewCodebooksButton);
+
+    // Add CodeBox
+    codeBox = new CodeBox(leftFrame);
+    leftLayout->addWidget(codeBox);
+
+
     leftLayout->setStretch(0, 1);
     leftLayout->setStretch(1, 0);
     leftLayout->setStretch(2, 0);
     leftLayout->setStretch(3, 0);
+    leftLayout->setStretch(4, 0);
+
     // Right frame
     rightFrame = new QFrame(mainCentralWidget);
     rightFrame->setFrameShape(QFrame::StyledPanel);
     QVBoxLayout *rightLayout = new QVBoxLayout(rightFrame);
-    rightEmptyFrame = new QFrame(rightFrame);
-    rightEmptyFrame->setFrameShape(QFrame::NoFrame);
-    rightLayout->addWidget(rightEmptyFrame);
+    
+    // Create MessagesBox to replace the empty frame
+    messagesBox = new MessagesBox(rightFrame);
+    rightLayout->addWidget(messagesBox);
     QHBoxLayout *bottomRow = new QHBoxLayout();
     rightTextBox = new QLineEdit(rightFrame);
     bottomRow->addWidget(rightTextBox);
@@ -78,27 +75,57 @@ void MainWindow::showMainCentralWidget()
     mainLayout->addWidget(rightFrame);
     mainLayout->setStretch(0, 0);
     mainLayout->setStretch(1, 1);
-    setCentralWidget(mainCentralWidget);
+
+    db = new ClientDatabaseManager(this);
+    sock = new ClientSocketManager(server_address, this);
+
+    // // Connect friend selection to messages box
+    // connect(friendsBox, &FriendsBox::friendSelected, messagesBox, &MessagesBox::selectFriend);
+    
+    // // Connect send button to handler
+    // connect(sendButton, &QPushButton::clicked, this, &MainWindow::onSendButtonClicked);
+
+    
+    connect(sock, &ClientSocketManager::mentionLoginSuccess, this, &MainWindow::showMainCentralWidget);
+    connect(sock, &ClientSocketManager::mentionAccountResult, loginWidget, &LoginWidget::handleFailure);
+    connect(sock, &ClientSocketManager::mentionLoginResult, loginWidget, &LoginWidget::handleFailure);
+    
+    connect(loginWidget, &LoginWidget::requestAccount, sock, &ClientSocketManager::sendAccountRequest);
+    connect(loginWidget, &LoginWidget::requestLogin, sock, &ClientSocketManager::sendLoginRequest);
+
+    connect(sock, &ClientSocketManager::mentionLoginSuccess, db, &ClientDatabaseManager::queryFriends);
+    connect(db, &ClientDatabaseManager::outputFriendList, friendsBox, &FriendsBox::processFriendList);
+    
+    connect(sock, &ClientSocketManager::mentionFriendStatus, friendsBox, &FriendsBox::updateFriendStatus);
+    connect(requestsBox, &RequestsBox::requestFriendRequest, sock, &ClientSocketManager::sendFriendRequest);
+    connect(requestsBox, &RequestsBox::requestFriendResponse, sock, &ClientSocketManager::sendFriendResponse);
+    connect(sock, &ClientSocketManager::mentionFriendRequest, requestsBox, &RequestsBox::processFriendRequest);
+    connect(sock, &ClientSocketManager::mentionFriendResponse, requestsBox, &RequestsBox::processFriendResponse);
+    connect(requestsBox, &RequestsBox::announceNewFriend, db, &ClientDatabaseManager::insertFriend);
+    connect(db, &ClientDatabaseManager::reportNewFriend, friendsBox, &FriendsBox::addNewFriend);
+    connect(friendsBox, &FriendsBox::reportNewFriend, db, &ClientDatabaseManager::insertFriend);
+
+    connect(sock, &ClientSocketManager::mentionMessage, codeBox, &CodeBox::decryptAndReceiveMessage);
+    connect(codeBox, &CodeBox::requestMessageSend, sock, &ClientSocketManager::sendMessage);
+
+    connect(db, &ClientDatabaseManager::outputMessageQuery, messagesBox, &MessagesBox::processMessages);
+    connect(codeBox, &CodeBox::reportDecryptedMessage, db, &ClientDatabaseManager::insertMessage);
+    connect(db, &ClientDatabaseManager::reportIncomingMessage, messagesBox, &MessagesBox::addMessage);
+    connect(friendsBox, &FriendsBox::friendSelected, db, &ClientDatabaseManager::queryFriendMessages);
+
+    connect(sendButton, &QPushButton::clicked, this, [this](){ this->db->insertMessage(this->rightTextBox->text(), true); } );
+    connect(db, &ClientDatabaseManager::reportOutgoingMessage, codeBox, &CodeBox::encryptAndSendMessage);
+
+    showLoginWidget();
 }
 
-void MainWindow::handlePacket() {
-    qDebug() << "Received a packet";
-    unsigned char packet[PACKET_BUFFER_SIZE + 1];
-    packet[PACKET_BUFFER_SIZE] = 0;
-    if (sock->read((char *)packet, PACKET_BUFFER_SIZE) < 1) {
-        qDebug() << "An error occurred";
-    }
-    else {
-        switch (*packet) {
-            case PacketFromServerType::ACCOUNT_RESULT:
-            case PacketFromServerType::LOGIN_RESULT:
-            loginWidget->handlePacket(packet);
-            break;
-            default:
-            qDebug() << "Received invalid packet";
-        }
-    }
+void MainWindow::showLoginWidget()
+{
+    setCentralWidget(loginWidget);
+}
 
+void MainWindow::showMainCentralWidget() {
+    setCentralWidget(mainCentralWidget);
 }
 
 MainWindow::~MainWindow()

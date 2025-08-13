@@ -11,12 +11,14 @@ class LoginWidget : public QWidget {
     Q_OBJECT
 
 public:
-    explicit LoginWidget(QWidget *parent = nullptr, QTcpSocket * s = nullptr);
+    explicit LoginWidget(QWidget *parent = nullptr);
     ~LoginWidget();
-    QTcpSocket *sock;
     void handlePacket(unsigned char * packet);
 signals:
-    void logged_in();
+    void requestAccount(QString username, QString password);
+    void requestLogin(QString username, QString password);
+public slots:
+    void handleFailure(QString reason);
 private slots:
     void swapLoginPurpose();
     void login();

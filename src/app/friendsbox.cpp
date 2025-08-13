@@ -5,15 +5,16 @@
 #include <QMouseEvent>
 #include <QDebug>
 #include <iostream>
+#include <string>
+#include <QString>
+#include "vector"
 
-FriendsBox::FriendsBox(sqlite3 *db, QWidget *parent)
-    : QWidget(parent), database(db)
+FriendsBox::FriendsBox(QWidget *parent)
+    : QWidget(parent)
 {
     layout = new QVBoxLayout(this);
     layout->setSpacing(5);
     layout->setContentsMargins(5, 5, 5, 5);
-    
-    loadFriends();
 }
 
 FriendsBox::~FriendsBox()
@@ -21,38 +22,45 @@ FriendsBox::~FriendsBox()
     // Qt will delete child widgets automatically
 }
 
-void FriendsBox::loadFriends()
+void FriendsBox::addNewFriend(int id, const QString &name, int status)
 {
-    const char *sql = "SELECT id, friend_name, status FROM friends ORDER BY friend_name";
-    sqlite3_stmt *stmt;
-    
-    int rc = sqlite3_prepare_v2(database, sql, -1, &stmt, nullptr);
-    if (rc != SQLITE_OK) {
-        qDebug() << "Failed to prepare statement:" << sqlite3_errmsg(database);
+    if (friendWidgets.contains(id) || friendNameToId.contains(name)) {
+        qDebug() << "Adding duplicate friend";
         return;
     }
-    
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        int id = sqlite3_column_int(stmt, 0);
-        const char *name = (const char*)sqlite3_column_text(stmt, 1);
-        int status = sqlite3_column_int(stmt, 2);
-        
-        addFriend(id, QString::fromUtf8(name), status);
-    }
-    
-    sqlite3_finalize(stmt);
-}
 
-void FriendsBox::addFriend(int id, const QString &name, int status)
-{
     FriendBox *friendBox = new FriendBox(id, name, status, this);
     friendWidgets[id] = friendBox;
+    friendNameToId[name] = id;
     layout->addWidget(friendBox);
     
-    connect(friendBox, &FriendBox::friendClicked, this, [this](int friendId) {
-        qDebug() << "Friend clicked:" << friendId;
-        // Emit signal or handle friend selection
+    connect(friendBox, &FriendBox::friendClicked, this, [this](QString friendName) {
+        qDebug() << "Friend clicked:" << friendName;
+        // selectedFriendId = friendId;
+        emit friendSelected(friendName);
     });
+}
+
+void FriendsBox::processFriendList(std::vector<QString> names) {
+    int i = 0;
+    while (i < names.size()) {
+        addNewFriend(i, names[i], FriendStatus::OFFLINE);
+        ++i;
+    }
+}
+
+void FriendsBox::updateFriendStatus(const QString &username, int status)
+{   
+    if (!friendNameToId.contains(username)) {
+        addNewFriend(friendNameToId.size(), username, status);
+        reportNewFriend(username);
+    }
+    else {
+        int id = friendNameToId[username];
+        if (friendWidgets.contains(id)) {
+            friendWidgets[id]->updateStatus(status);
+        }
+    }
 }
 
 FriendBox::FriendBox(int friendId, const QString &name, int status, QWidget *parent)
@@ -74,15 +82,25 @@ FriendBox::FriendBox(int friendId, const QString &name, int status, QWidget *par
     QString statusText = (status == FriendStatus::ONLINE) ? "ONLINE" : "OFFLINE";
     QString statusColor = (status == FriendStatus::ONLINE) ? "#4CAF50" : "#9E9E9E";
     
-    QLabel *statusLabel = new QLabel(statusText, this);
+    statusLabel = new QLabel(statusText, this);
     statusLabel->setStyleSheet(QString("color: %1; font-size: 10px; font-weight: bold;").arg(statusColor));
     layout->addWidget(statusLabel);
+}
+
+void FriendBox::updateStatus(int status)
+{
+    friendStatus = status;
+    QString statusText = (status == FriendStatus::ONLINE) ? "ONLINE" : "OFFLINE";
+    QString statusColor = (status == FriendStatus::ONLINE) ? "#4CAF50" : "#9E9E9E";
+    
+    statusLabel->setText(statusText);
+    statusLabel->setStyleSheet(QString("color: %1; font-size: 10px; font-weight: bold;").arg(statusColor));
 }
 
 void FriendBox::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
-        emit friendClicked(friendId);
+        emit friendClicked(friendName);
     }
     QWidget::mousePressEvent(event);
-} 
+}

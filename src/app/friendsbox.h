@@ -4,7 +4,9 @@
 #include <QWidget>
 #include <QVBoxLayout>
 #include <QMap>
+#include <QLabel>
 #include <sqlite3.h>
+#include <vector>
 
 class FriendBox;
 
@@ -13,16 +15,23 @@ class FriendsBox : public QWidget
     Q_OBJECT
 
 public:
-    explicit FriendsBox(sqlite3 *db, QWidget *parent = nullptr);
+    explicit FriendsBox(QWidget *parent = nullptr);
     ~FriendsBox();
 
+public slots:
+    void updateFriendStatus(const QString &username, int status);
+    void addNewFriend(int id, const QString &username, int status);
+    void processFriendList(std::vector<QString> friend_names);
+
+signals:
+    void friendSelected(QString friend_name);
+    void reportNewFriend(QString friend_name);
+
 private:
-    sqlite3 *database;
     QVBoxLayout *layout;
     QMap<int, FriendBox*> friendWidgets;
-    
-    void loadFriends();
-    void addFriend(int id, const QString &name, int status);
+    QMap<QString, int> friendNameToId;
+    int selectedFriendId;
 };
 
 class FriendBox : public QWidget
@@ -31,17 +40,19 @@ class FriendBox : public QWidget
 
 public:
     explicit FriendBox(int friendId, const QString &name, int status, QWidget *parent = nullptr);
+    void updateStatus(int status);
     
+    QString friendName;
+    int friendStatus;
 signals:
-    void friendClicked(int friendId);
+    void friendClicked(QString friendName);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
 
 private:
     int friendId;
-    QString friendName;
-    int friendStatus;
+    QLabel *statusLabel;
 };
 
 #endif // FRIENDSBOX_H 

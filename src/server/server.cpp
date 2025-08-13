@@ -23,7 +23,7 @@ MillenniumServer::MillenniumServer() {
     char * zErrMsg;
     if (sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS users (user_name TEXT, pass_hash TEXT, hash_count INTEGER);", NULL, NULL, &zErrMsg) ||
         sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS friends (left TEXT, right TEXT);", NULL, NULL, &zErrMsg) ||
-        sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS requests (recipient TEXT, sender TEXT);", NULL, NULL, &zErrMsg))
+        sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS requests (recipient TEXT, sender TEXT, hidden INTEGER);", NULL, NULL, &zErrMsg))
     {
         fprintf(stderr, "Error occurred: %s\n", zErrMsg);
         sqlite3_free(zErrMsg);
@@ -281,9 +281,9 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
 
                                 // If login is successful, give them information
 
-                                // get pending friend requests
+                                // get incoming friend requests
                                 names.clear();
-                                db_statement = "SELECT sender FROM requests WHERE recipient = '" + connectedUser + "';";
+                                db_statement = "SELECT sender FROM requests WHERE recipient = '" + connectedUser + "' AND hidden = FALSE;";
                                 if (sqlite3_exec(db, db_statement.c_str(), gatherStringsCallback, &names, &zErrMsg) != SQLITE_OK) {
                                     std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
                                     sqlite3_free(zErrMsg);
@@ -291,6 +291,18 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                                 for (auto &name : names) {
                                     frf = std::make_shared<friendRequestForward>(connectedUser, name);
                                     sendOutPacket(connectedUser, frf);
+                                }
+
+                                // get pending friend requests
+                                names.clear();
+                                db_statement = "SELECT recipient FROM requests WHERE sender = '" + connectedUser + "';";
+                                if (sqlite3_exec(db, db_statement.c_str(), gatherStringsCallback, &names, &zErrMsg) != SQLITE_OK) {
+                                    std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
+                                    sqlite3_free(zErrMsg);
+                                } 
+                                for (auto &name : names) {
+                                    frr = std::make_shared<friendRequestResponse>(name, connectedUser, FriendRequestResponse::PENDING);
+                                    sendOutPacket(connectedUser, frr);
                                 }
 
                                 // get friend statuses and send friend statuses
@@ -301,6 +313,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                                     sqlite3_free(zErrMsg);
                                 }
                                 for (auto &name : names) {
+                                    std::cout << "Checking status of: " << name << std::endl;
                                     std::unique_lock<std::mutex> lock(clientMutex);
                                     // bool has_name = clientIPs.contains(name);
                                     bool has_name = (clientIPs.find(name) != clientIPs.end());
@@ -310,6 +323,10 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                                         sendOutPacket(connectedUser, fsu);
                                         fsu = std::make_shared<friendStatusUpdate>(connectedUser, FriendStatus::ONLINE);
                                         sendOutPacket(name, fsu);
+                                    }
+                                    else {
+                                        fsu = std::make_shared<friendStatusUpdate>(name, FriendStatus::OFFLINE);
+                                        sendOutPacket(connectedUser, fsu);
                                     }
                                 }
                             }
@@ -325,7 +342,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                 std::cout << "Received a friend request send packet ";
                 req = new friendRequestSend(receiveBuffer);
                 frs = dynamic_cast<friendRequestSend *>(req);
-                std::cout << "targeting user: '" << frs->target_name << "'.\n";
+                std::cout << "from user " << connectedUser << " targeting user: '" << frs->target_name << "'.\n";
                 
                 // Check if the target username exists in users table
                 db_statement = "SELECT COUNT(*) FROM users WHERE user_name = '" + frs->target_name + "';";
@@ -336,11 +353,12 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                 }
                 else {
                     if (targetExists == 0) {
+                        std::cout << "That target does not exist.\n";
                         resp = new friendRequestResponse(frs->target_name, connectedUser, FriendRequestResponse::DOES_NOT_EXIST);
                     }
                     else {
                         // Target user exists, insert the request into the requests database
-                        db_statement = "INSERT INTO requests (to, from) VALUES ('" + frs->target_name + "', '" + connectedUser + "');";
+                        db_statement = "INSERT INTO requests (recipient, sender, hidden) VALUES ('" + frs->target_name + "', '" + connectedUser + "', FALSE);";
                         if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) {
                             std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
                             sqlite3_free(zErrMsg);
@@ -367,20 +385,47 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                     case FriendRequestResponse::ACCEPT:
                     db_statement = "INSERT INTO friends (left, right) VALUES ('" + connectedUser + "', '" + fra->from + "'); "
                                 + "INSERT INTO friends (left, right) VALUES ('" + fra->from + "', '" + connectedUser + "')";
+                    std::cout << "It's an accepted request - should be running the query: " << db_statement << ";\n";
                     if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) { 
                         std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
                         sqlite3_free(zErrMsg);
                     }
+
+                    // announce the status of this new friend
+                    {
+                        std::cout << "Checking status of: " << fra->from << std::endl;
+                        std::unique_lock<std::mutex> lock(clientMutex);
+                        // bool has_name = clientIPs.contains(name);
+                        bool has_name = (clientIPs.find(fra->from) != clientIPs.end());
+                        lock.unlock();
+                        if (has_name) {
+                            fsu = std::make_shared<friendStatusUpdate>(fra->from, FriendStatus::ONLINE);
+                            sendOutPacket(connectedUser, fsu);
+                        }
+                        else {
+                            fsu = std::make_shared<friendStatusUpdate>(fra->from, FriendStatus::OFFLINE);
+                            sendOutPacket(connectedUser, fsu);
+                        }
+                    }
+                    
                     case FriendRequestResponse::REJECT:
                     frr = std::make_shared<friendRequestResponse>(connectedUser, fra->from, fra->response);
-                    sendOutPacket(fra->to, frr);
+                        std::cout << "Passing on that information to " << fra->to;
+                        sendOutPacket(fra->to, frr);
+                        std::cout << "\tand should be removing it from the database" << std::endl;
+                        db_statement = "DELETE FROM requests WHERE recipient = '" + connectedUser + "' AND sender = '" + fra->from + "';";
+                        if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) { 
+                            std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
+                            sqlite3_free(zErrMsg);
+                        }
+                        break;
                     case FriendRequestResponse::HIDE:
-                    db_statement = "DELETE FROM requests WHERE recipient = '" + connectedUser + "' AND sender = '" + fra->from + "';";
-                    if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) { 
-                        std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
-                        sqlite3_free(zErrMsg);
-                    }
-                    break;
+                        db_statement = "UPDATE requests SET hidden = TRUE WHERE recipient = '" + connectedUser + "' AND sender = '" + fra->from + "';";
+                        if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) { 
+                            std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
+                            sqlite3_free(zErrMsg);
+                        }
+                        break;
                     default:
                     std::cout << "Which is invalid.\n";
                 }
@@ -391,6 +436,10 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                 std::cout << "Received a message send packet ";
                 req = new messageSend(receiveBuffer);
                 ms = dynamic_cast<messageSend *>(req);
+                if (ms->bytes_remaining) {
+                    recv(clientSocket, (char *)receiveBuffer, sizeof(receiveBuffer) - 1, 0);
+                    while (ms->read_from_packet(receiveBuffer)) recv(clientSocket, (char *)receiveBuffer, sizeof(receiveBuffer) - 1, 0);
+                }
                 std::cout << "with message: '" << ms->message << "' to recipient: '" << ms->recipient << "'.\n";
                 
                 // Check if the recipient is online (in clientIPs)
@@ -421,17 +470,31 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
         // std::string response = "Server received: " + std::string((char *)receiveBuffer);
 
         if (resp) {
-            std::cout << "All good, about to send packet\n";
+            std::cout << "To the connected user, sending a packet of type ";
             std::lock_guard<std::mutex> myLock(*(socketMutexes[clientIP]));
 
-            // while (resp->write_to_packet(sendBuffer)) {
-            //     int sbyteCount = send(clientSocket, (char *)sendBuffer, PACKET_BUFFER_SIZE, 0);
-            //     if (sbyteCount == SOCKET_ERROR) {
-            //         std::cout << "Error sending to client " << clientIP << ": " << WSAGetLastError() << std::endl;
-            //         delete resp;
-            //         goto close;
-            //     }
-            // }
+            switch (resp->type) {
+                case (PacketFromServerType::ACCOUNT_RESULT):
+                    std::cout << "account result"; break;
+                case (PacketFromServerType::LOGIN_RESULT):
+                    std::cout << "login result"; break;
+                case (PacketFromServerType::FRIEND_STATUS_UPDATE):
+                    std::cout << "friend status update"; break;
+                case (PacketFromServerType::FRIEND_REQUEST_FORWARD):
+                    std::cout << "friend request forward"; break;
+                case (PacketFromServerType::FRIEND_REQUEST_RESPONSE):
+                    std::cout << "friend request response"; break;
+                case (PacketFromServerType::MESSAGE_FORWARD):
+                    std::cout << "message forward"; break;
+                case (PacketFromServerType::MESSAGE_RESPONSE):
+                    std::cout << "message response"; break;
+                default:
+                    std::cout << "invalid";
+            }
+
+            std::cout << "\n";
+
+
             resp->write_to_packet(sendBuffer); // all response packets are short
             int sbyteCount = send(clientSocket, (char *)sendBuffer, PACKET_BUFFER_SIZE, 0);
             if (sbyteCount == SOCKET_ERROR) {
@@ -461,7 +524,10 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
 void MillenniumServer::sendOutPacket(std::string to, std::shared_ptr<packetFromServer> f) {
     std::cout << "Sending a packet to " << to << std::endl;
     std::unique_lock infoLock(clientMutex);
-    if (clientIPs.find(to) == clientIPs.end()) return;
+    if (clientIPs.find(to) == clientIPs.end()) {
+        std::cout << "That user is not online.\n";
+        return;
+    }
     std::string destIPStr = clientIPs[to];
     std::unique_lock socketLock(*(socketMutexes[destIPStr]));
     SOCKET destSocket = clientSockets[destIPStr];
