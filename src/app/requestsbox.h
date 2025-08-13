@@ -10,7 +10,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QString>
-#include <sqlite3.h>
+#include "packet.h"
 
 class RequestBox;
 class QTcpSocket;
@@ -20,19 +20,19 @@ class RequestsBox : public QWidget
     Q_OBJECT
 
 public:
-    explicit RequestsBox(sqlite3 *db, QTcpSocket *socket, QWidget *parent = nullptr);
+    explicit RequestsBox(QWidget *parent = nullptr);
     ~RequestsBox();
 
     void handlePacket(unsigned char *packet);
     QString my_name;
-public signals:
-    requestFriendRequest(QString name);
-    requestFriendResponse(QString name, FriendRequestResponse resp);
-    announceNewFriend(QString name);
+signals:
+    void requestFriendRequest(QString name);
+    void requestFriendResponse(QString name, FriendRequestResponse resp);
+    void announceNewFriend(QString name);
 
-private slots:
-    processFriendRequest(QString name);
-    processFriendResponse(QString name, FriendRequestResponse resp);
+public slots:
+    void processFriendRequest(QString name);
+    void processFriendResponse(QString name, FriendRequestResponse resp);
 
 private:
     QVBoxLayout *layout;
@@ -42,6 +42,9 @@ private:
     void removeRequest(const QString &from);
     void sendFriendRequestAcknowledge(const QString &to, const QString &from, int response);
     void sendFriendRequestSend(const QString &target);
+
+private slots:
+    void createFriendRequest();
 };
 
 class RequestBox : public QWidget

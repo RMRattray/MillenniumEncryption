@@ -438,7 +438,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
                 ms = dynamic_cast<messageSend *>(req);
                 if (ms->bytes_remaining) {
                     recv(clientSocket, (char *)receiveBuffer, sizeof(receiveBuffer) - 1, 0);
-                    while ms->read_from_packet(receiveBuffer) recv(clientSocket, (char *)receiveBuffer, sizeof(receiveBuffer) - 1, 0)
+                    while (ms->read_from_packet(receiveBuffer)) recv(clientSocket, (char *)receiveBuffer, sizeof(receiveBuffer) - 1, 0);
                 }
                 std::cout << "with message: '" << ms->message << "' to recipient: '" << ms->recipient << "'.\n";
                 

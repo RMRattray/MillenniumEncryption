@@ -117,8 +117,8 @@ void ClientSocketManager::sendMessage(QString friend_name, QString message)
     
     messageSend packet(message.toStdString(), friend_name.toStdString());
     unsigned char buffer[PACKET_BUFFER_SIZE];
-    while (packet.write_to_packet(buffer)) sock->write(reinterpret_cast<const char*>(buffer), bytesWritten);
-    sock->write(reinterpret_cast<const char*>(buffer), bytesWritten);
+    while (packet.write_to_packet(buffer)) sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
+    sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
 }
 
 // Private method to handle incoming packets and emit signals
@@ -126,7 +126,8 @@ void ClientSocketManager::handlePacket(char *packet)
 {
     // First byte contains the packet type
     PacketFromServerType packetType = static_cast<PacketFromServerType>(packet[0]);
-    
+    unsigned char buffer[PACKET_BUFFER_SIZE];
+
     switch (packetType) {
         case ACCOUNT_RESULT: {
             createAccountResponse response(reinterpret_cast<unsigned char*>(packet));
@@ -163,8 +164,8 @@ void ClientSocketManager::handlePacket(char *packet)
         case MESSAGE_FORWARD: {
             messageForward response(reinterpret_cast<unsigned char*>(packet));
             if (response.bytes_remaining) {
-                sock->read(buffer, PACKET_BUFFER_SIZE);
-                while(response.read_from_packet(buffer)) sock->read(buffer, PACKET_BUFFER_SIZE);
+                sock->read((char *)buffer, PACKET_BUFFER_SIZE);
+                while(response.read_from_packet(buffer)) sock->read((char *)buffer, PACKET_BUFFER_SIZE);
             }
             emit mentionMessage(QString::fromStdString(response.sender), QString::fromStdString(response.message));
             break;

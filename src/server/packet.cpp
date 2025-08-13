@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cstdint>
 #include <string>
 #include <stdexcept>
 #include "packet.h"
@@ -122,7 +124,7 @@ messageSend::messageSend(unsigned char * buffer) {
     
     bytes_remaining = *(uint32_t *)(buffer + 4);
     recipient = std::string((char *)buffer + 8);
-    uint32_t readable = min(PACKET_BUFFER_SIZE - 9 - recipient.size(), bytes_remaining);
+    uint32_t readable = std::min((uint32_t)(PACKET_BUFFER_SIZE - 9 - recipient.size()), bytes_remaining);
     message = std::string((char *)buffer + 9 + recipient.size(), readable);
     bytes_remaining -= readable;
 }
@@ -141,7 +143,7 @@ int messageSend::write_to_packet(unsigned char * buffer) {
 
     if (writeable > message.size()) writeable = message.size();
     message.substr(message.size() - bytes_remaining, writeable).copy((char *)buffer + 9, writeable);
-    bytes_remaining -= writeable
+    bytes_remaining -= writeable;
     
     return bytes_remaining;
 }
@@ -149,7 +151,7 @@ int messageSend::write_to_packet(unsigned char * buffer) {
 int messageSend::read_from_packet(unsigned char * buffer) {
     if (*buffer != type) throw std::runtime_error("Attempting to read message send from wrong sort of packet");
     if (bytes_remaining != *(uint32_t *)(buffer + 4)) throw std::runtime_error("Packet length inconsistent");
-    uint32_t readable = min(PACKET_BUFFER_SIZE - 8, bytes_remaining);
+    uint32_t readable = std::min((uint32_t)(PACKET_BUFFER_SIZE - 8), bytes_remaining);
     message += std::string((char *)buffer + 8, readable);
     bytes_remaining -= readable;
 
@@ -304,8 +306,8 @@ messageForward::messageForward(unsigned char * buffer) {
     
     bytes_remaining = *(uint32_t *)(buffer + 4);
     sender = std::string((char *)buffer + 8);
-    uint32_t readable = min(PACKET_BUFFER_SIZE - 9 - recipient.size(), bytes_remaining);
-    message = std::string((char *)buffer + 9 + recipient.size(), readable);
+    uint32_t readable = std::min((uint32_t)(PACKET_BUFFER_SIZE - 9 - sender.size()), bytes_remaining);
+    message = std::string((char *)buffer + 9 + sender.size(), readable);
     bytes_remaining -= readable;
 }
 
@@ -315,8 +317,8 @@ int messageForward::write_to_packet(unsigned char * buffer) {
 
     uint32_t writeable;
     if (bytes_remaining == message.size()) {
-        sender.copy((char *)buffer + 8; sender.size());
-        *(buffer + 8 + sender.size()) == 0;
+        sender.copy((char *)buffer + 8, sender.size());
+        *(buffer + 8 + sender.size()) = 0;
         writeable = PACKET_BUFFER_SIZE - 9 - sender.size();
     }
     else writeable = PACKET_BUFFER_SIZE - 8;
@@ -331,7 +333,7 @@ int messageForward::write_to_packet(unsigned char * buffer) {
 int messageForward::read_from_packet(unsigned char * buffer) {
     if (*buffer  != type) throw std::runtime_error("Attempting to read message forward from wrong type of packet");
     if (bytes_remaining != *(uint32_t *)(buffer + 4)) throw std::runtime_error("Packet length inconsistent");
-    uint32_t readable = min(PACKET_BUFFER_SIZE - 8, bytes_remaining);
+    uint32_t readable = std::min((uint32_t)(PACKET_BUFFER_SIZE - 8), bytes_remaining);
     message += std::string((char *)buffer + 8, readable);
     bytes_remaining -= readable;
 

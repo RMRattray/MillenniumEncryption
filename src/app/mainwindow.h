@@ -5,6 +5,8 @@
 #include "friendsbox.h"
 #include "requestsbox.h"
 #include "messagesbox.h"
+#include "clientsocket.h"
+#include "database.h"
 #include "codebox.h"
 #include <QMainWindow>
 #include <QWidget>
@@ -22,14 +24,13 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(sqlite3 *db, QWidget *parent = nullptr);
+    explicit MainWindow(QString server_address, QWidget *parent = nullptr);
     ~MainWindow();
 
-    LoginWidget *loginWidget;
-private:
-    // Login screen widgets
+    void showMainCentralWidget();
+    void showLoginWidget();
 
-    // Main central widget and its components
+    LoginWidget *loginWidget;
     QWidget *mainCentralWidget;
     QFrame *leftFrame;
     QFrame *rightFrame;
@@ -41,12 +42,8 @@ private:
     QLineEdit *rightTextBox;
     QPushButton *sendButton;
 
-    void showLoginWidget();
-    void showMainCentralWidget(QString);
-    void handlePacket();
-    
-private slots:
-    void onSendButtonClicked();
+    ClientSocketManager * sock;
+    ClientDatabaseManager * db;
 };
 
 #endif

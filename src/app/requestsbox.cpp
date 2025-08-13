@@ -9,10 +9,9 @@
 #include <QDialogButtonBox>
 #include <QMessageBox>
 #include <QDebug>
-#include <QTcpSocket>
 
-RequestsBox::RequestsBox(sqlite3 *db, QTcpSocket *socket, QWidget *parent)
-    : QWidget(parent), database(db), socket(socket)
+RequestsBox::RequestsBox(QWidget *parent)
+    : QWidget(parent)
 {
     layout = new QVBoxLayout(this);
     layout->setSpacing(5);
@@ -36,27 +35,24 @@ void RequestsBox::processFriendRequest(QString name) {
 }
 
 void RequestsBox::processFriendResponse(QString name, FriendRequestResponse resp) {
-            QMessageBox msgBox;
-            switch (resp) {
-                case FriendRequestResponse::DOES_NOT_EXIST:
-                    msgBox.setText(QString::fromStdString("No user named '" + response.to + "'."));
-                    msgBox.exec();
-                break;
-                case FriendRequestResponse::DATABASE_ERROR:
-                    msgBox.setText("A database error occurred while trying to contact the user.");
-                    msgBox.exec();
-                break;
-                case FriendRequestResponse::PENDING:
-                qDebug() << "Adding request to " << response.to;
-                    addRequest(name, false);
-                break;
-                case FriendRequestResponse::ACCEPT:
-                    announceNewFriend(name);
-                case FriendRequestResponse::REJECT:
-                qDebug() << "Removing request from " << response.from << " to " << response.to;
-                    removeRequest(name);
-                    break;
-            }
+    QMessageBox msgBox;
+    switch (resp) {
+        case FriendRequestResponse::DOES_NOT_EXIST:
+            msgBox.setText(QString::fromStdString("No user with that name."));
+            msgBox.exec();
+        break;
+        case FriendRequestResponse::DATABASE_ERROR:
+            msgBox.setText("A database error occurred while trying to contact the user.");
+            msgBox.exec();
+        break;
+        case FriendRequestResponse::PENDING:
+            addRequest(name, false);
+        break;
+        case FriendRequestResponse::ACCEPT:
+            announceNewFriend(name);
+        case FriendRequestResponse::REJECT:
+            removeRequest(name);
+            break;
     }
 }
 
@@ -120,14 +116,15 @@ void RequestsBox::createFriendRequest()
         // sqlite3_finalize(stmt_chk);
 
         QMessageBox msgBox;
-        if (ans) {
-            msgBox.setText(QString::fromStdString("You are already friends with " + target_name + "."));
-            msgBox.exec();
-            return;
-        }
+        // if (ans) {
+        //     msgBox.setText("You are already friends with " + username);
+        //     msgBox.exec();
+        //     return;
+        // }
 
-        else if (requestWidgets.contains(username)) {
-            msgBox.setText(QString::fromStdString("You already have a request " + ( requestWidgets[username]->is_pending ? std::string("to ") : std::string("from ") ) + target_name + "."));
+        // else
+        if (requestWidgets.contains(username)) {
+            msgBox.setText(QString::fromStdString("You already have a request " + ( requestWidgets[username]->is_pending ? std::string("to ") : std::string("from ") )) + username + ".");
             msgBox.exec();
         }
         else {

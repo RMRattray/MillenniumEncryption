@@ -1,4 +1,10 @@
 #include "mainwindow.h"
+#include "clientsocket.h"
+#include "database.h"
+#include "codebox.h"
+#include "friendsbox.h"
+#include "messagesbox.h"
+#include "requestsbox.h"
 #include "login.h"
 #include "packet.h"
 #include "../server/packet.h"
@@ -13,7 +19,7 @@
 #include <QSpacerItem>
 #include <QTcpSocket>
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(QString server_address, QWidget *parent)
     : QMainWindow(parent)
 {
     // Login widget takes up the entire screen
@@ -28,16 +34,16 @@ MainWindow::MainWindow(QWidget *parent)
     QVBoxLayout *leftLayout = new QVBoxLayout(leftFrame);
     
     // Add FriendsBox and RequestsBox
-    friendsBox = new FriendsBox(database, leftFrame);
+    friendsBox = new FriendsBox(leftFrame);
     leftLayout->addWidget(friendsBox);
     
-    requestsBox = new RequestsBox(database, sock, leftFrame);
+    requestsBox = new RequestsBox(leftFrame);
     leftLayout->addWidget(requestsBox);
     
     leftLayout->addSpacing(10);
 
     // Add CodeBox
-    codeBox = new CodeBox(sock, leftFrame);
+    codeBox = new CodeBox(leftFrame);
     leftLayout->addWidget(codeBox);
 
 
@@ -53,7 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
     QVBoxLayout *rightLayout = new QVBoxLayout(rightFrame);
     
     // Create MessagesBox to replace the empty frame
-    messagesBox = new MessagesBox(database, rightFrame);
+    messagesBox = new MessagesBox(rightFrame);
     rightLayout->addWidget(messagesBox);
     QHBoxLayout *bottomRow = new QHBoxLayout();
     rightTextBox = new QLineEdit(rightFrame);
@@ -69,11 +75,45 @@ MainWindow::MainWindow(QWidget *parent)
     mainLayout->addWidget(rightFrame);
     mainLayout->setStretch(0, 0);
     mainLayout->setStretch(1, 1);
-    // Connect friend selection to messages box
-    connect(friendsBox, &FriendsBox::friendSelected, messagesBox, &MessagesBox::selectFriend);
+
+    db = new ClientDatabaseManager(this);
+    sock = new ClientSocketManager(server_address, this);
+
+    // // Connect friend selection to messages box
+    // connect(friendsBox, &FriendsBox::friendSelected, messagesBox, &MessagesBox::selectFriend);
     
-    // Connect send button to handler
-    connect(sendButton, &QPushButton::clicked, this, &MainWindow::onSendButtonClicked);
+    // // Connect send button to handler
+    // connect(sendButton, &QPushButton::clicked, this, &MainWindow::onSendButtonClicked);
+
+    
+    connect(sock, &ClientSocketManager::mentionLoginSuccess, this, &MainWindow::showMainCentralWidget);
+    connect(sock, &ClientSocketManager::mentionAccountResult, loginWidget, &LoginWidget::handleFailure);
+    connect(sock, &ClientSocketManager::mentionLoginResult, loginWidget, &LoginWidget::handleFailure);
+    
+    connect(loginWidget, &LoginWidget::requestAccount, sock, &ClientSocketManager::sendAccountRequest);
+    connect(loginWidget, &LoginWidget::requestLogin, sock, &ClientSocketManager::sendLoginRequest);
+
+    connect(sock, &ClientSocketManager::mentionLoginSuccess, db, &ClientDatabaseManager::queryFriends);
+    connect(db, &ClientDatabaseManager::outputFriendList, friendsBox, &FriendsBox::processFriendList);
+    
+    connect(sock, &ClientSocketManager::mentionFriendStatus, friendsBox, &FriendsBox::updateFriendStatus);
+    connect(requestsBox, &RequestsBox::requestFriendRequest, sock, &ClientSocketManager::sendFriendRequest);
+    connect(requestsBox, &RequestsBox::requestFriendResponse, sock, &ClientSocketManager::sendFriendRequest);
+    connect(sock, &ClientSocketManager::mentionFriendRequest, requestsBox, &RequestsBox::processFriendRequest);
+    connect(sock, &ClientSocketManager::mentionFriendRequestResponse, requestsBox, &RequestsBox::processFriendResponse);
+    connect(requestsBox, &RequestsBox::announceNewFriend, db, &ClientDatabaseManager::insertFriend);
+    connect(db, &ClientDatabaseManager::reportNewFriend, friendsBox, &FriendsBox::addNewFriend);
+
+    connect(sock, &ClientSocketManager::mentionMessage, codeBox, &CodeBox::decryptAndReceiveMessage);
+    connect(codeBox, &CodeBox::requestMessageSend, sock, &ClientSocketManager::sendMessage);
+
+    connect(db, &ClientDatabaseManager::outputMessageQuery, messagesBox, &MessagesBox::processMessages);
+    connect(codeBox, &CodeBox::reportDecryptedMessage, db, &ClientDatabaseManager::insertMessage);
+    connect(db, &ClientDatabaseManager::reportIncomingMessage, messagesBox, &MessagesBox::addMessage);
+    connect(friendsBox, &FriendsBox::friendSelected, db, &ClientDatabaseManager::queryFriendMessages);
+
+    connect(sendButton, &QPushButton::clicked, this, [this](){ this->db->insertMessage(this->rightTextBox->text(), true); } );
+    connect(db, &ClientDatabaseManager::reportOutgoingMessage, codeBox, &CodeBox::encryptAndSendMessage);
 
     showLoginWidget();
 }
@@ -83,81 +123,11 @@ void MainWindow::showLoginWidget()
     setCentralWidget(loginWidget);
 }
 
-void MainWindow::showMainCentralWidget(QString new_username)
-{
-    qDebug() << "Should be showing the main central widget now";
-    requestsBox->my_name = new_username;
-    qDebug() << "Successfully set a name property";
+void MainWindow::showMainCentralWidget() {
     setCentralWidget(mainCentralWidget);
-    qDebug() << "And the central widget";
-}
-
-void MainWindow::handlePacket() {
-    qDebug() << "Received a packet";
-    unsigned char packet[PACKET_BUFFER_SIZE + 1];
-    packet[PACKET_BUFFER_SIZE] = 0;
-    if (sock->read((char *)packet, PACKET_BUFFER_SIZE) < 1) {
-        qDebug() << "An error occurred";
-    }
-    else {
-        switch (*packet) {
-            case PacketFromServerType::ACCOUNT_RESULT:
-                qDebug() << "It's an account result packet";
-            case PacketFromServerType::LOGIN_RESULT:
-                qDebug() << "It's a login result packet";
-                loginWidget->handlePacket(packet);
-                break;
-            case PacketFromServerType::FRIEND_STATUS_UPDATE:
-                qDebug() << "It's a friend status update packet";
-                friendsBox->handlePacket(packet);
-            case PacketFromServerType::FRIEND_REQUEST_RESPONSE:
-                qDebug() << "It's a friend request response packet";
-                requestsBox->handlePacket(packet);
-                break;
-            case PacketFromServerType::FRIEND_REQUEST_FORWARD:
-                qDebug() << "It's a friend request forwarding packet";
-                requestsBox->handlePacket(packet);
-                break;
-            default:
-                qDebug() << "Received invalid packet";
-        }
-    }
 }
 
 MainWindow::~MainWindow()
 {
     // Qt will delete child widgets automatically
-}
-
-void MainWindow::onSendButtonClicked()
-{
-    // Check if a friend is selected
-    if (!friendsBox->hasSelectedFriend()) {
-        qDebug() << "No friend selected";
-        return;
-    }
-    
-    // Check if the selected friend is online
-    if (friendsBox->getSelectedFriendStatus() != FriendStatus::ONLINE) {
-        qDebug() << "Selected friend is not online";
-        return;
-    }
-    
-    // Get the message from the text box
-    QString message = rightTextBox->text().trimmed();
-    if (message.isEmpty()) {
-        qDebug() << "Message is empty";
-        return;
-    }
-    
-    // Get the selected friend's name
-    QString targetFriend = friendsBox->getSelectedFriendName();
-    
-    // Send the encrypted message
-    codeBox->encryptAndSendMessage(message, targetFriend);
-    
-    // Clear the text box
-    rightTextBox->clear();
-    
-    qDebug() << "Message sent to" << targetFriend;
 }

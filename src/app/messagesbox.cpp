@@ -7,9 +7,11 @@
 #include <QSpacerItem>
 #include <QTimer>
 #include <QScrollBar>
+#include <vector>
+#include <tuple>
 
-MessagesBox::MessagesBox(sqlite3 *db, QWidget *parent)
-    : QWidget(parent), database(db), currentFriendId(-1)
+MessagesBox::MessagesBox(QWidget *parent)
+    : QWidget(parent)
 {
     layout = new QVBoxLayout(this);
     layout->setContentsMargins(5, 5, 5, 5);
@@ -46,27 +48,11 @@ MessagesBox::~MessagesBox()
     // Qt will delete child widgets automatically
 }
 
-void MessagesBox::selectFriend(int friendId)
-{
-    if (friendId == currentFriendId) {
-        return; // Already showing this friend's messages
-    }
-    
-    currentFriendId = friendId;
-    loadMessages(friendId);
-}
-
-void MessagesBox::processMessages(vector<tuple<QString, bool>> messages, int id)
+void MessagesBox::processMessages(std::vector<std::tuple<QString, bool>> messages, int id)
 {
     clearMessages();
 
     currentMinMessageId = id;
-    
-    if (friendId <= 0) {
-        scrollArea->hide();
-        noSelectionLabel->show();
-        return;
-    }
     
     bool hasMessages = messages.size();
     
@@ -75,8 +61,8 @@ void MessagesBox::processMessages(vector<tuple<QString, bool>> messages, int id)
         scrollArea->show();
         noSelectionLabel->hide();
 
-        for (&message : messages) {
-            addMessage(get<0>message, get<1>message);
+        for (auto message : messages) {
+            addMessage(std::get<0>(message), std::get<1>(message));
         }
         
         // Scroll to the bottom to show latest messages

@@ -6,6 +6,7 @@
 #include <QMap>
 #include <QLabel>
 #include <sqlite3.h>
+#include <vector>
 
 class FriendBox;
 
@@ -14,16 +15,16 @@ class FriendsBox : public QWidget
     Q_OBJECT
 
 public:
-    explicit FriendsBox(sqlite3 *db, QWidget *parent = nullptr);
+    explicit FriendsBox(QWidget *parent = nullptr);
     ~FriendsBox();
 
 public slots:
     void updateFriendStatus(const QString &username, int status);
-    void addNewFriend(const QString &username, int status);
-    void processFriendList(vector<QString> friend_names);
+    void addNewFriend(int id, const QString &username, int status);
+    void processFriendList(std::vector<QString> friend_names);
 
 signals:
-    void friendSelected(int friendId);
+    void friendSelected(QString friend_name);
 
 private:
     QVBoxLayout *layout;
@@ -43,7 +44,7 @@ public:
     QString friendName;
     int friendStatus;
 signals:
-    void friendClicked(int friendId);
+    void friendClicked(QString friendName);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;

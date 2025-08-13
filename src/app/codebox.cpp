@@ -10,8 +10,8 @@
 #include <string>
 #include <sstream>
 
-CodeBox::CodeBox(QTcpSocket *socket, QWidget *parent)
-    : QWidget(parent), sock(socket), current_codebook(nullptr)
+CodeBox::CodeBox(QWidget *parent)
+    : QWidget(parent), current_codebook(nullptr)
 {
     layout = new QVBoxLayout(this);
     
@@ -71,7 +71,7 @@ void CodeBox::decryptAndReceiveMessage(QString message, QString sender)
 {
     if (!current_codebook) {
         qDebug() << "No codebook selected for decryption";
-        reportDecryptedMessage(message, recipient);
+        reportDecryptedMessage(message, false, sender);
         return;
     }
     
@@ -85,7 +85,7 @@ void CodeBox::decryptAndReceiveMessage(QString message, QString sender)
     std::ostringstream plainStream(decryptedMessage);
     decrypt(cipherStream, plainStream, *current_codebook);
     
-    reportDecryptedMessage(QString::fromStdString(decryptedMessage), sender);
+    reportDecryptedMessage(QString::fromStdString(decryptedMessage), false, sender);
 }
 
 void CodeBox::addNewCodebook()

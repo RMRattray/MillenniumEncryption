@@ -6,6 +6,8 @@
 #include <QScrollArea>
 #include <QLabel>
 #include <sqlite3.h>
+#include <vector>
+#include <tuple>
 
 class MessageBox;
 
@@ -18,8 +20,8 @@ public:
     ~MessagesBox();
 
 public slots:
-    void processMessages(vector<tuple<QString, bool>> messages, int id);
-    void addMessage(QString message, bool original, QString friend);
+    void processMessages(std::vector<std::tuple<QString, bool>> messages, int id);
+    void addMessage(QString message, bool original);
 
 private:
     QVBoxLayout *layout;

@@ -15,12 +15,12 @@ class CodeBox : public QWidget
     Q_OBJECT
 
 public:
-    explicit CodeBox(QTcpSocket *socket, QWidget *parent = nullptr);
+    explicit CodeBox(QWidget *parent = nullptr);
     ~CodeBox();
     
-public signals:
+signals:
     void requestMessageSend(QString message, QString recipient);
-    void reportDecryptedMessage(QString message, QString sender);
+    void reportDecryptedMessage(QString message, bool original, QString sender);
 public slots:
     void encryptAndSendMessage(QString message, QString recipient);
     void decryptAndReceiveMessage(QString message, QString sender);

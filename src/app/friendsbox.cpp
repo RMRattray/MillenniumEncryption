@@ -7,15 +7,14 @@
 #include <iostream>
 #include <string>
 #include <QString>
+#include "vector"
 
-FriendsBox::FriendsBox(sqlite3 *db, QWidget *parent)
-    : QWidget(parent), database(db), selectedFriendId(-1)
+FriendsBox::FriendsBox(QWidget *parent)
+    : QWidget(parent)
 {
     layout = new QVBoxLayout(this);
     layout->setSpacing(5);
     layout->setContentsMargins(5, 5, 5, 5);
-    
-    loadFriends();
 }
 
 FriendsBox::~FriendsBox()
@@ -23,7 +22,7 @@ FriendsBox::~FriendsBox()
     // Qt will delete child widgets automatically
 }
 
-void FriendsBox::addFriend(int id, const QString &name, int status)
+void FriendsBox::addNewFriend(int id, const QString &name, int status)
 {
     if (friendWidgets.contains(id) || friendNameToId.contains(name)) {
         qDebug() << "Adding duplicate friend";
@@ -35,48 +34,23 @@ void FriendsBox::addFriend(int id, const QString &name, int status)
     friendNameToId[name] = id;
     layout->addWidget(friendBox);
     
-    connect(friendBox, &FriendBox::friendClicked, this, [this](int friendId) {
-        qDebug() << "Friend clicked:" << friendId;
-        selectedFriendId = friendId;
-        emit friendSelected(friendId);
+    connect(friendBox, &FriendBox::friendClicked, this, [this](QString friendName) {
+        qDebug() << "Friend clicked:" << friendName;
+        // selectedFriendId = friendId;
+        emit friendSelected(friendName);
     });
 }
 
-void FriendsBox::processFriendList(vector<QString> names) {
+void FriendsBox::processFriendList(std::vector<QString> names) {
     int i = 0;
     while (i < names.size()) {
-        addFriend(i, names[i], FriendStatus::OFFLINE);
-    }
-}
-
-
-void FriendsBox::handlePacket(unsigned char *packet)
-{
-    std::cout << "Friends box received a packet of type: ";
-    switch (*packet) {
-        case PacketFromServerType::FRIEND_STATUS_UPDATE: {
-            std::cout << "friend status update.\n";
-            friendStatusUpdate statusUpdate(packet);
-            QString username = QString::fromStdString(statusUpdate.username);
-            qDebug() << "Status of: " << username;
-            updateFriendStatus(username, static_cast<int>(statusUpdate.status));
-            break;
-        }
-        case PacketFromServerType::FRIEND_REQUEST_RESPONSE: {
-            std::cout << "friend request response.\n";
-            friendRequestResponse response(packet);
-            QString from = QString::fromStdString(response.from);
-            if (response.response == FriendRequestResponse::ACCEPT) {
-                addNewFriend(from, FriendStatus::ONLINE);
-            }
-            break;
-        }
+        addNewFriend(i, names[i], FriendStatus::OFFLINE);
     }
 }
 
 void FriendsBox::updateFriendStatus(const QString &username, int status)
 {   
-    if (!friendNameToId.contains(username)) addFriend(friendNameToId.size(), username, status);
+    if (!friendNameToId.contains(username)) addNewFriend(friendNameToId.size(), username, status);
     else {
         int id = friendNameToId[username];
         if (friendWidgets.contains(id)) {
@@ -84,7 +58,6 @@ void FriendsBox::updateFriendStatus(const QString &username, int status)
         }
     }
 }
-
 
 FriendBox::FriendBox(int friendId, const QString &name, int status, QWidget *parent)
     : QWidget(parent), friendId(friendId), friendName(name), friendStatus(status)
@@ -123,34 +96,7 @@ void FriendBox::updateStatus(int status)
 void FriendBox::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
-        emit friendClicked(friendId);
+        emit friendClicked(friendName);
     }
     QWidget::mousePressEvent(event);
-}
-
-// FriendsBox methods for getting selected friend information
-int FriendsBox::getSelectedFriendId() const
-{
-    return selectedFriendId;
-}
-
-QString FriendsBox::getSelectedFriendName() const
-{
-    if (selectedFriendId > 0 && friendWidgets.contains(selectedFriendId)) {
-        return friendWidgets[selectedFriendId]->friendName;
-    }
-    return QString();
-}
-
-int FriendsBox::getSelectedFriendStatus() const
-{
-    if (selectedFriendId > 0 && friendWidgets.contains(selectedFriendId)) {
-        return friendWidgets[selectedFriendId]->friendStatus;
-    }
-    return FriendStatus::OFFLINE;
-}
-
-bool FriendsBox::hasSelectedFriend() const
-{
-    return selectedFriendId > 0 && friendWidgets.contains(selectedFriendId);
 }
