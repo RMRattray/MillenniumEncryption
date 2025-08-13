@@ -136,21 +136,18 @@ void ClientSocketManager::handlePacket(char *packet)
         
         case FRIEND_STATUS_UPDATE: {
             friendStatusUpdate response(reinterpret_cast<unsigned char*>(packet));
-            qDebug() << "Received a status update packet stating that " << response.username << " is " << response.status;
             emit mentionFriendStatus(QString::fromStdString(response.username), response.status);
             break;
         }
         
         case FRIEND_REQUEST_FORWARD: {
             friendRequestForward response(reinterpret_cast<unsigned char*>(packet));
-            qDebug() << "Received a friend request forward packet from " << response.from;
             emit mentionFriendRequest(QString::fromStdString(response.from));
             break;
         }
         
         case FRIEND_REQUEST_RESPONSE: {
             friendRequestResponse response(reinterpret_cast<unsigned char*>(packet));
-            qDebug() << "Received a friend request response packet - request from " << response.from << " to " << response.to << " saying " << response.response;
             emit mentionFriendResponse(QString::fromStdString(response.to), response.response);
             break;
         }

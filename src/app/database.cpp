@@ -7,7 +7,7 @@ ClientDatabaseManager::ClientDatabaseManager(QObject *parent)
     , database(nullptr)
 {
     // Initialize SQLite database
-    int rc = sqlite3_open("client.db", &database);
+    int rc = sqlite3_open("PIT.db", &database);
     if (rc != SQLITE_OK) {
         qDebug() << "Failed to open database:" << sqlite3_errmsg(database);
         return;
@@ -184,6 +184,7 @@ void ClientDatabaseManager::queryFriends()
 
     sqlite3_finalize(stmt);
     
+    qDebug() << "About to output a list of friends of length " << friends.size();
     emit outputFriendList(friends);
 }
 

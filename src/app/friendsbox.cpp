@@ -45,6 +45,7 @@ void FriendsBox::processFriendList(std::vector<QString> names) {
     int i = 0;
     while (i < names.size()) {
         addNewFriend(i, names[i], FriendStatus::OFFLINE);
+        ++i;
     }
 }
 
