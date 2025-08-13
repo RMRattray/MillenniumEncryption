@@ -98,9 +98,9 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
     
     connect(sock, &ClientSocketManager::mentionFriendStatus, friendsBox, &FriendsBox::updateFriendStatus);
     connect(requestsBox, &RequestsBox::requestFriendRequest, sock, &ClientSocketManager::sendFriendRequest);
-    connect(requestsBox, &RequestsBox::requestFriendResponse, sock, &ClientSocketManager::sendFriendRequest);
+    connect(requestsBox, &RequestsBox::requestFriendResponse, sock, &ClientSocketManager::sendFriendResponse);
     connect(sock, &ClientSocketManager::mentionFriendRequest, requestsBox, &RequestsBox::processFriendRequest);
-    connect(sock, &ClientSocketManager::mentionFriendRequestResponse, requestsBox, &RequestsBox::processFriendResponse);
+    connect(sock, &ClientSocketManager::mentionFriendResponse, requestsBox, &RequestsBox::processFriendResponse);
     connect(requestsBox, &RequestsBox::announceNewFriend, db, &ClientDatabaseManager::insertFriend);
     connect(db, &ClientDatabaseManager::reportNewFriend, friendsBox, &FriendsBox::addNewFriend);
 
