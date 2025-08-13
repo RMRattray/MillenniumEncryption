@@ -23,7 +23,8 @@ ClientSocketManager::ClientSocketManager(QString server_address, QObject *parent
     // Connect readyRead to handle incoming data
     connect(sock, &QTcpSocket::readyRead, this, [this]() {
         while (sock->bytesAvailable() >= PACKET_BUFFER_SIZE) {
-            char buffer[PACKET_BUFFER_SIZE];
+            char buffer[PACKET_BUFFER_SIZE + 1];
+            buffer[PACKET_BUFFER_SIZE] = 0;
             qint64 bytesRead = sock->read(buffer, PACKET_BUFFER_SIZE);
             if (bytesRead == PACKET_BUFFER_SIZE) {
                 handlePacket(buffer);
@@ -51,11 +52,9 @@ void ClientSocketManager::sendAccountRequest(QString user_name, QString password
     
     createAccountRequest packet(user_name.toStdString(), password.toStdString());
     unsigned char buffer[PACKET_BUFFER_SIZE];
-    int bytesWritten = packet.write_to_packet(buffer);
+    packet.write_to_packet(buffer);
     
-    if (bytesWritten > 0) {
-        sock->write(reinterpret_cast<const char*>(buffer), bytesWritten);
-    }
+    sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
 }
 
 void ClientSocketManager::sendLoginRequest(QString user_name, QString password)
@@ -67,11 +66,9 @@ void ClientSocketManager::sendLoginRequest(QString user_name, QString password)
     
     loginRequest packet(user_name.toStdString(), password.toStdString());
     unsigned char buffer[PACKET_BUFFER_SIZE];
-    int bytesWritten = packet.write_to_packet(buffer);
+    packet.write_to_packet(buffer);
     
-    if (bytesWritten > 0) {
-        sock->write(reinterpret_cast<const char*>(buffer), bytesWritten);
-    }
+    sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
 }
 
 void ClientSocketManager::sendFriendRequest(QString friend_name)
@@ -83,11 +80,8 @@ void ClientSocketManager::sendFriendRequest(QString friend_name)
     
     friendRequestSend packet(friend_name.toStdString());
     unsigned char buffer[PACKET_BUFFER_SIZE];
-    int bytesWritten = packet.write_to_packet(buffer);
-    
-    if (bytesWritten > 0) {
-        sock->write(reinterpret_cast<const char*>(buffer), bytesWritten);
-    }
+    packet.write_to_packet(buffer);
+    sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
 }
 
 void ClientSocketManager::sendFriendRequestResponse(QString friend_name, FriendRequestResponse response)
@@ -101,11 +95,8 @@ void ClientSocketManager::sendFriendRequestResponse(QString friend_name, FriendR
     // For now, using empty strings - you may need to modify this based on your needs
     friendRequestAcknowledge packet("", friend_name.toStdString(), response);
     unsigned char buffer[PACKET_BUFFER_SIZE];
-    int bytesWritten = packet.write_to_packet(buffer);
-    
-    if (bytesWritten > 0) {
-        sock->write(reinterpret_cast<const char*>(buffer), bytesWritten);
-    }
+    packet.write_to_packet(buffer);
+    sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
 }
 
 void ClientSocketManager::sendMessage(QString friend_name, QString message)
