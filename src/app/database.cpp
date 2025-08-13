@@ -124,7 +124,8 @@ void ClientDatabaseManager::insertMessage(QString message, bool original, QStrin
         return;
     }
 
-    sqlite3_bind_text(getFriendStmt, 1, friend_name.toUtf8().constData(), -1, SQLITE_STATIC);
+    std::string namechars = friend_name.toStdString();
+    sqlite3_bind_text(getFriendStmt, 1, namechars.c_str(), -1, SQLITE_STATIC);
     
     int friendId = -1;
     if (sqlite3_step(getFriendStmt) == SQLITE_ROW) {
@@ -206,7 +207,8 @@ void ClientDatabaseManager::queryMessages(QString friend_name, int count, int be
         return;
     }
 
-    sqlite3_bind_text(getFriendStmt, 1, friend_name.toUtf8().constData(), -1, SQLITE_STATIC);
+    std::string name_as_str = friend_name.toStdString();
+    sqlite3_bind_text(getFriendStmt, 1, name_as_str.c_str(), -1, SQLITE_STATIC);
     
     int friendId = -1;
     if (sqlite3_step(getFriendStmt) == SQLITE_ROW) {

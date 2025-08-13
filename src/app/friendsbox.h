@@ -25,6 +25,7 @@ public slots:
 
 signals:
     void friendSelected(QString friend_name);
+    void reportNewFriend(QString friend_name);
 
 private:
     QVBoxLayout *layout;

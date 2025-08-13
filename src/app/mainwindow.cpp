@@ -103,6 +103,7 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
     connect(sock, &ClientSocketManager::mentionFriendResponse, requestsBox, &RequestsBox::processFriendResponse);
     connect(requestsBox, &RequestsBox::announceNewFriend, db, &ClientDatabaseManager::insertFriend);
     connect(db, &ClientDatabaseManager::reportNewFriend, friendsBox, &FriendsBox::addNewFriend);
+    connect(friendsBox, &FriendsBox::reportNewFriend, db, &ClientDatabaseManager::insertFriend);
 
     connect(sock, &ClientSocketManager::mentionMessage, codeBox, &CodeBox::decryptAndReceiveMessage);
     connect(codeBox, &CodeBox::requestMessageSend, sock, &ClientSocketManager::sendMessage);

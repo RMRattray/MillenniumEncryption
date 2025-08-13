@@ -51,7 +51,10 @@ void FriendsBox::processFriendList(std::vector<QString> names) {
 
 void FriendsBox::updateFriendStatus(const QString &username, int status)
 {   
-    if (!friendNameToId.contains(username)) addNewFriend(friendNameToId.size(), username, status);
+    if (!friendNameToId.contains(username)) {
+        addNewFriend(friendNameToId.size(), username, status);
+        reportNewFriend(username);
+    }
     else {
         int id = friendNameToId[username];
         if (friendWidgets.contains(id)) {
