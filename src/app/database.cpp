@@ -114,6 +114,8 @@ void ClientDatabaseManager::insertMessage(QString message, bool original, QStrin
         return;
     }
 
+    qDebug() << "Friend name is now: " << friend_name;
+
     // First get the friend_id from the friends table
     const char* getFriendIdSql = "SELECT id FROM friends WHERE friend_name = ?";
     sqlite3_stmt* getFriendStmt;
@@ -149,8 +151,10 @@ void ClientDatabaseManager::insertMessage(QString message, bool original, QStrin
         return;
     }
 
+    std::string message_as_string = message.toStdString();
+
     sqlite3_bind_int(insertStmt, 1, friendId);
-    sqlite3_bind_text(insertStmt, 2, message.toUtf8().constData(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(insertStmt, 2, message_as_string.c_str(), -1, SQLITE_STATIC);
     sqlite3_bind_int(insertStmt, 3, original ? 1 : 0);
     
     rc = sqlite3_step(insertStmt);
