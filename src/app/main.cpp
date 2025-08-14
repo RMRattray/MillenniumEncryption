@@ -25,21 +25,6 @@ int main(int argc, char **argv)
         ++i;
     }
 
-    // Get server address if one is present in command-line arguments
-    QString server_address = "127.0.0.1";
-    int i = 1;
-    while (i < argc) {
-        if (!strcmp(argv[i], "-ip")) {
-            ++i;
-            if (i == argc) {
-                std::cerr << "No IP address after -ip flag\n";
-                return 1;
-            }
-            server_address = QString(argv[i]);
-        }
-        ++i;
-    }
-
     MainWindow window(server_address);
 
     window.show();

@@ -3,6 +3,7 @@
 #include <string>
 #include <stdexcept>
 #include "packet.h"
+#include <iostream>
 
 createAccountRequest::createAccountRequest(std::string name, std::string pwd) {
     if (name.size() + pwd.size() > PACKET_BUFFER_SIZE - 3) throw std::runtime_error("Username or password is too long");
@@ -141,8 +142,8 @@ int messageSend::write_to_packet(unsigned char * buffer) {
     }
     else writeable = PACKET_BUFFER_SIZE - 8;
 
-    if (writeable > message.size()) writeable = message.size();
-    message.substr(message.size() - bytes_remaining, writeable).copy((char *)buffer + 9, writeable);
+    if (writeable > bytes_remaining) writeable = bytes_remaining;
+    message.substr(message.size() - bytes_remaining, writeable).copy((char *)buffer + PACKET_BUFFER_SIZE - writeable, writeable);
     bytes_remaining -= writeable;
     
     return bytes_remaining;

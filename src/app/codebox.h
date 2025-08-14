@@ -19,7 +19,7 @@ public:
     ~CodeBox();
     
 signals:
-    void requestMessageSend(QString message, QString recipient);
+    void requestMessageSend(QString recipient, QString message);
     void reportDecryptedMessage(QString message, bool original, QString sender);
 public slots:
     void encryptAndSendMessage(QString message, QString recipient);

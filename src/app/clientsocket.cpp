@@ -106,9 +106,12 @@ void ClientSocketManager::sendMessage(QString friend_name, QString message)
         return;
     }
     
+    qDebug() << "Sending the message" << message << "to" << friend_name;
     messageSend packet(message.toStdString(), friend_name.toStdString());
     unsigned char buffer[PACKET_BUFFER_SIZE];
-    while (packet.write_to_packet(buffer)) sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
+    while (packet.write_to_packet(buffer)) {
+        sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
+    }
     sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
 }
 
