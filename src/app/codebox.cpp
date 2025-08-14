@@ -48,9 +48,10 @@ CodeBox::~CodeBox()
 
 void CodeBox::encryptAndSendMessage(QString message, QString recipient)
 {
+    qDebug() << "Encrypting the message \"" << message << "\" for " << recipient;
     if (!current_codebook) {
         qDebug() << "No codebook selected for encryption";
-        requestMessageSend(message, recipient);
+        requestMessageSend(recipient, message);
         return;
     }
     
@@ -64,7 +65,7 @@ void CodeBox::encryptAndSendMessage(QString message, QString recipient)
     std::ostringstream cipherStream(encryptedMessage);
     encrypt(messageStream, cipherStream, *current_codebook);
     
-    requestMessageSend(QString::fromStdString(encryptedMessage), recipient);
+    requestMessageSend(recipient, QString::fromStdString(encryptedMessage));
 }
 
 void CodeBox::decryptAndReceiveMessage(QString message, QString sender)
