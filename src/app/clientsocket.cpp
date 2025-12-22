@@ -84,7 +84,7 @@ void ClientSocketManager::sendFriendRequest(QString friend_name)
     sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
 }
 
-void ClientSocketManager::sendFriendResponse(QString friend_name, FriendRequestResponse response)
+void ClientSocketManager::sendFriendResponse(QString friend_name, int response)
 {
     if (sock->state() != QAbstractSocket::ConnectedState) {
         qDebug() << "Not connected to server";
@@ -93,7 +93,7 @@ void ClientSocketManager::sendFriendResponse(QString friend_name, FriendRequestR
     
     // Note: This needs the 'to' and 'from' parameters from the packet.h
     // For now, using empty strings - you may need to modify this based on your needs
-    friendRequestAcknowledge packet("", friend_name.toStdString(), response);
+    friendRequestAcknowledge packet("", friend_name.toStdString(), static_cast<FriendRequestResponse>(response));
     unsigned char buffer[PACKET_BUFFER_SIZE];
     packet.write_to_packet(buffer);
     sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
@@ -139,7 +139,7 @@ void ClientSocketManager::handlePacket(char *packet)
         
         case FRIEND_STATUS_UPDATE: {
             friendStatusUpdate response(reinterpret_cast<unsigned char*>(packet));
-            emit mentionFriendStatus(QString::fromStdString(response.username), response.status);
+            emit mentionFriendStatus(QString::fromStdString(response.username), static_cast<int>(response.status));
             break;
         }
         
@@ -151,7 +151,7 @@ void ClientSocketManager::handlePacket(char *packet)
         
         case FRIEND_REQUEST_RESPONSE: {
             friendRequestResponse response(reinterpret_cast<unsigned char*>(packet));
-            emit mentionFriendResponse(QString::fromStdString(response.to), response.response);
+            emit mentionFriendResponse(QString::fromStdString(response.to), static_cast<int>(response.response));
             break;
         }
         

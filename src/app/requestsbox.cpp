@@ -34,9 +34,9 @@ void RequestsBox::processFriendRequest(QString name) {
     addRequest(name, true);
 }
 
-void RequestsBox::processFriendResponse(QString name, FriendRequestResponse resp) {
+void RequestsBox::processFriendResponse(QString name, int resp) {
     QMessageBox msgBox;
-    switch (resp) {
+    switch (static_cast<FriendRequestResponse>(resp)) {
         case FriendRequestResponse::DOES_NOT_EXIST:
             msgBox.setText(QString::fromStdString("No user with that name."));
             msgBox.exec();
@@ -53,6 +53,8 @@ void RequestsBox::processFriendResponse(QString name, FriendRequestResponse resp
         case FriendRequestResponse::REJECT:
             removeRequest(name);
             break;
+        default:
+            break;
     }
 }
 
@@ -67,18 +69,18 @@ void RequestsBox::addRequest(const QString &from, bool hasButtons)
     layout->insertWidget(layout->count() - 1, requestBox); // Insert before the button
     
     connect(requestBox, &RequestBox::acceptRequest, this, [this](const QString &username) {
-        requestFriendResponse(username, FriendRequestResponse::ACCEPT);
+        emit requestFriendResponse(username, static_cast<int>(FriendRequestResponse::ACCEPT));
         announceNewFriend(username);
         removeRequest(username);
     });
     
     connect(requestBox, &RequestBox::rejectRequest, this, [this](const QString &username) {
-        requestFriendResponse(username, FriendRequestResponse::REJECT);
+        emit requestFriendResponse(username, static_cast<int>(FriendRequestResponse::REJECT));
         removeRequest(username);
     });
     
     connect(requestBox, &RequestBox::hideRequest, this, [this](const QString &username) {
-        requestFriendResponse(username, FriendRequestResponse::HIDE);
+        emit requestFriendResponse(username, static_cast<int>(FriendRequestResponse::HIDE));
         removeRequest(username);
     });
 }

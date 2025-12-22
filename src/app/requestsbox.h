@@ -27,12 +27,12 @@ public:
     QString my_name;
 signals:
     void requestFriendRequest(QString name);
-    void requestFriendResponse(QString name, FriendRequestResponse resp);
+    void requestFriendResponse(QString name, int resp);
     void announceNewFriend(QString name);
 
 public slots:
     void processFriendRequest(QString name);
-    void processFriendResponse(QString name, FriendRequestResponse resp);
+    void processFriendResponse(QString name, int resp);
 
 private:
     QVBoxLayout *layout;

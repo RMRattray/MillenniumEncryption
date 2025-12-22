@@ -1,4 +1,4 @@
-set(SQLITE_DIR "sqlite-amalgamation-3500300")
+set(SQLITE_DIR "sqlite-amalgamation-3510100")
 
 add_library(sqlite STATIC 
     "${SQLITE_DIR}/sqlite3.c"
