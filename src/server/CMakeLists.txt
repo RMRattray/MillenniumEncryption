@@ -15,5 +15,10 @@ target_link_libraries(millennium_falcon PRIVATE
     millennium_crypt
     millennium_server
     sqlite
-    ws2_32
 )
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows") 
+    target_link_libraries(millennium_falcon PRIVATE
+        ws2_32
+    )
+endif()
