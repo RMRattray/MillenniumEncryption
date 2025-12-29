@@ -43,7 +43,7 @@ std::string get_default_output_filename_from_string(const std::string& input_str
         return "decrypted_output";
     } else {
         // Take first 3 letters of input string
-        std::string prefix = input_string.substr(0, std::min((long long unsigned int)3, input_string.length()));
+        std::string prefix = input_string.substr(0, std::min<size_t>(3, input_string.length()));
         return prefix + ".mlnm";
     }
 }
