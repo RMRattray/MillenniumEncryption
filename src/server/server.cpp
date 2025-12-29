@@ -6,8 +6,17 @@
 #include <mutex>
 #include <string>
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#ifdef _WIN32
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+#else
+    #include <sys/socket.h>
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <unistd.h>
+    #include <errno.h>
+    #include <cstring>
+#endif
 
 #include <packet.h>
 #include <server.h>
@@ -29,7 +38,8 @@ MillenniumServer::MillenniumServer() {
         sqlite3_free(zErrMsg);
     }
 
-    // Set up winsock
+    // Set up winsock (Windows only)
+#ifdef _WIN32
     WSADATA wsaData;
     int wsaerr;
     WORD wVersionRequested = MAKEWORD(2, 2);
@@ -38,13 +48,17 @@ MillenniumServer::MillenniumServer() {
         std::cout << "Winsock dll not found!\n";
         return;
     }
+#endif
 
     // Set up server socket
-    serverSocket = INVALID_SOCKET;
-    serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (serverSocket == INVALID_SOCKET) {
+    serverSocket = INVALID_SOCKET_VALUE;
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (serverSocket == INVALID_SOCKET_VALUE) {
         std::cout << "Error at socket(): " << WSAGetLastError() << std::endl;
+#ifdef _WIN32
         WSACleanup();
+
+#endif
         return;
     }
 
@@ -53,7 +67,9 @@ MillenniumServer::MillenniumServer() {
     if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt)) < 0) {
         std::cout << "setsockopt failed" << std::endl;
         closesocket(serverSocket);
+#ifdef _WIN32
         WSACleanup();
+#endif
         return;
     }
 
@@ -61,18 +77,26 @@ MillenniumServer::MillenniumServer() {
     service.sin_family = AF_INET;
     service.sin_addr.s_addr = INADDR_ANY;
     service.sin_port = htons(PORT);
-    if (bind(serverSocket, reinterpret_cast<SOCKADDR*>(&service), sizeof(service)) == SOCKET_ERROR) {
+    if (bind(serverSocket, reinterpret_cast<struct sockaddr*>(&service), sizeof(service)) == SOCKET_ERROR_VALUE) {
         std::cout << "bind() failed: " << WSAGetLastError() << std::endl;
         closesocket(serverSocket);
+#ifdef _WIN32
         WSACleanup();
+#endif
         return;
     }
 
     // Listen for incoming connections
-    if (listen(serverSocket, SOMAXCONN) == SOCKET_ERROR) {
+#ifdef _WIN32
+    if (listen(serverSocket, SOMAXCONN) == SOCKET_ERROR_VALUE) {
+#else
+    if (listen(serverSocket, SOMAXCONN) < 0) {
+#endif
         std::cout << "Error listening on socket: " << WSAGetLastError() << std::endl;
         closesocket(serverSocket);
+#ifdef _WIN32
         WSACleanup();
+#endif
         return;
     }
 
@@ -83,14 +107,14 @@ MillenniumServer::MillenniumServer() {
 void MillenniumServer::spin() {
     serverRunning = true;
     while (serverRunning) {
-        SOCKET clientSocket = INVALID_SOCKET;
+        socket_t clientSocket = INVALID_SOCKET_VALUE;
         sockaddr_in clientAddr;
-        int clientAddrLen = sizeof(clientAddr);
+        socklen_t clientAddrLen = sizeof(clientAddr);
 
         std::cout << "About to run the 'accept' function:\n";
-        clientSocket = accept(serverSocket, reinterpret_cast<SOCKADDR*>(&clientAddr), &clientAddrLen);
+        clientSocket = accept(serverSocket, reinterpret_cast<struct sockaddr*>(&clientAddr), &clientAddrLen);
         std::cout << "I've run the 'accept' function\n";
-        if (clientSocket == INVALID_SOCKET) {
+        if (clientSocket == INVALID_SOCKET_VALUE) {
             std::cout << "Accept failed: " << WSAGetLastError() << std::endl;
             continue;
         }
@@ -130,7 +154,9 @@ MillenniumServer::~MillenniumServer() {
     }
 
     closesocket(serverSocket);
+#ifdef _WIN32
     WSACleanup();
+#endif
     sqlite3_close(db);
 
     std::cout << "Server shutdown complete" << std::endl;
@@ -158,7 +184,7 @@ int gatherStringsCallback(void *data, int argc, char **argv, char **azColName) {
     return 0;
 }
 
-void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
+void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP) {
     std::cout << "New client connected from: " << clientIP << std::endl;
 
     unsigned char receiveBuffer[PACKET_BUFFER_SIZE + 1];
@@ -499,7 +525,7 @@ void MillenniumServer::handleClient(SOCKET clientSocket, std::string clientIP) {
 
             resp->write_to_packet(sendBuffer); // all response packets are short
             int sbyteCount = send(clientSocket, (char *)sendBuffer, PACKET_BUFFER_SIZE, 0);
-            if (sbyteCount == SOCKET_ERROR) {
+            if (sbyteCount == SOCKET_ERROR_VALUE) {
                 std::cout << "Error sending to client " << clientIP << ": " << WSAGetLastError() << std::endl;
                 delete resp;
                 goto close;
@@ -532,7 +558,7 @@ void MillenniumServer::sendOutPacket(std::string to, std::shared_ptr<packetFromS
     }
     std::string destIPStr = clientIPs[to];
     std::unique_lock socketLock(*(socketMutexes[destIPStr]));
-    SOCKET destSocket = clientSockets[destIPStr];
+    socket_t destSocket = clientSockets[destIPStr];
     infoLock.unlock();
 
     unsigned char packet[PACKET_BUFFER_SIZE + 1];
@@ -542,12 +568,12 @@ void MillenniumServer::sendOutPacket(std::string to, std::shared_ptr<packetFromS
 
     while (f->write_to_packet(packet)) {
         sbyteCount = send(destSocket, (char *)packet, PACKET_BUFFER_SIZE, 0);
-        if (sbyteCount == SOCKET_ERROR) {
+        if (sbyteCount == SOCKET_ERROR_VALUE) {
             std::cout << "Error sending friend status to client " << destIPStr << ": " << WSAGetLastError() << std::endl;
         }
     }
     sbyteCount = send(destSocket, (char *)packet, PACKET_BUFFER_SIZE, 0);
-    if (sbyteCount == SOCKET_ERROR) {
+    if (sbyteCount == SOCKET_ERROR_VALUE) {
         std::cout << "Error sending friend status to client " << destIPStr << ": " << WSAGetLastError() << std::endl;
     }
 }
