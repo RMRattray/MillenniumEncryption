@@ -44,4 +44,4 @@ private:
     QString queried_friend = "";
 };
 
-#endif DATABASE_H
+#endif // DATABASE_H
