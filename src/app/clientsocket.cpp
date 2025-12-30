@@ -2,6 +2,7 @@
 #include <QTcpSocket>
 #include <QTimer>
 #include <QDebug>
+#include <QString>
 
 ClientSocketManager::ClientSocketManager(QString server_address, QObject *parent)
     : QObject(parent)
@@ -18,6 +19,16 @@ ClientSocketManager::ClientSocketManager(QString server_address, QObject *parent
     
     connect(sock, &QTcpSocket::errorOccurred, this, [this](QAbstractSocket::SocketError error) {
         qDebug() << "Socket error:" << error;
+        QString message = "An unexpected error occurred.";
+        switch (error) {
+            case QAbstractSocket::RemoteHostClosedError:
+                message = "Server connection lost.";
+                break;
+            case QAbstractSocket::ConnectionRefusedError:
+                message = "Unable to connect to server.  Ensure you are running millennium_falcon.";
+                break;
+        }
+        emit mentionSocketError(message);
     });
     
     // Connect readyRead to handle incoming data

@@ -76,6 +76,8 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
     mainLayout->setStretch(0, 0);
     mainLayout->setStretch(1, 1);
 
+    errorScreen = new QLabel(this);
+
     db = new ClientDatabaseManager(this);
     sock = new ClientSocketManager(server_address, this);
 
@@ -84,7 +86,7 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
     
     // // Connect send button to handler
     // connect(sendButton, &QPushButton::clicked, this, &MainWindow::onSendButtonClicked);
-
+    connect(sock, &ClientSocketManager::mentionSocketError, this, &MainWindow::showError);
     
     connect(sock, &ClientSocketManager::mentionLoginSuccess, this, &MainWindow::showMainCentralWidget);
     connect(sock, &ClientSocketManager::mentionAccountResult, loginWidget, &LoginWidget::handleFailure);
@@ -126,6 +128,11 @@ void MainWindow::showLoginWidget()
 
 void MainWindow::showMainCentralWidget() {
     setCentralWidget(mainCentralWidget);
+}
+
+void MainWindow::showError(QString message) {
+    setCentralWidget(errorScreen);
+    errorScreen->setText(message);
 }
 
 MainWindow::~MainWindow()
