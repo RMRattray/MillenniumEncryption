@@ -236,132 +236,179 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP)
 
         // Action depends on the first byte
         switch (receiveBuffer[0]) {
-            case PacketToServerType::CREATE_ACCOUNT:
+
+            case PacketToServerType::CREATE_ACCOUNT: {
                 std::cout << "Received a packet requesting the creation of an account ";
                 req = new createAccountRequest(receiveBuffer);
                 car = dynamic_cast<createAccountRequest *>(req);
                 std::cout << "with the user name:  '" << car->user_name << "' and the password:  '" << car->password << "'.\n";
-                // (db, "CREATE TABLE IF NOT EXISTS users (user_name TEXT, pass_hash TEXT, hash_count INTEGER);", NULL, NULL, &zErrMsg)
-                db_statement = "SELECT COUNT (*) FROM users WHERE user_name = '" + car->user_name + "';"; // Danger - user name better not contain apostrophes
-                if (sqlite3_exec(db, db_statement.c_str(), countCallback, &taken, &zErrMsg) != SQLITE_OK) {
-                    std::cout << "Error in SQLite:  " << std::string(zErrMsg);
-                    sqlite3_free(zErrMsg);
+                
+                // Check to see if the username is taken (retrieve count of users with that name)
+                bool failed = false;
+                int taken = 0;
+                const char * username_check_tmplt = "SELECT COUNT(*) FROM users WHERE user_name = ?;";
+                sqlite3_stmt * username_check_stmt;
+                int rc = sqlite3_prepare_v2(db, username_check_tmplt, -1, &username_check_stmt, nullptr);
+                if (rc != SQLITE_OK) {
+                    std::cout << "Failed to prepare statement to check if user name is in use:" << sqlite3_errmsg(db);
+                    failed = true;
+                }
+                if (!failed) {
+                    sqlite3_bind_text(username_check_stmt, 1, car->user_name.c_str(), -1, SQLITE_STATIC);
+                    rc = sqlite3_step(username_check_stmt);
+                    if (rc != SQLITE_ROW) {
+                        std::cout << "Failed to step in statement to check if user name is in use" << sqlite3_errmsg(db);
+                        failed = true;
+                    }
+                }
+                if (!failed) {
+                    taken = sqlite3_column_int(username_check_stmt, 0);
+                    sqlite3_finalize(username_check_stmt);
+                }
+
+                // If was unable to check if the username exists, say so;
+                if (failed) {
                     resp = new createAccountResponse(false, "Internal database issue");
                 }
                 else {
+                    // else if it does exist, say so;
                     if (taken) {
-                    std::cout << "User name was taken";
+                        std::cout << "User name was taken";
                         resp = new createAccountResponse(false, "User name was taken");
                     }
+                    // else, add it to the catalogue
                     else { // TODO: actually hash the password
-                        db_statement = "INSERT INTO users (user_name, pass_hash, hash_count) VALUES ('" + car->user_name + "','" + car->password + "', 0)";
-                        if (sqlite3_exec(db, db_statement.c_str(), NULL, NULL, &zErrMsg) != SQLITE_OK) {
-                            std::cout << "Error in SQLite:  " << std::string(zErrMsg);
-                            sqlite3_free(zErrMsg);
+                        const char * add_new_user_tmplt = "INSERT INTO users (user_name, pass_hash, hash_count) VALUES ( ?1 , ?2, ?3 );";
+                        sqlite3_stmt * add_new_user_stmt;
+                        rc = sqlite3_prepare_v2(db, add_new_user_tmplt, -1, &add_new_user_stmt, nullptr);
+                        if (rc != SQLITE_OK) {
+                            std::cout << "Failed to prepared statement to add new user";
+                            failed = true;
+                        }
+                        if (!failed) {
+                            sqlite3_bind_text(add_new_user_stmt, 1, car->user_name.c_str(), -1, SQLITE_STATIC);
+                            sqlite3_bind_text(add_new_user_stmt, 2, car->password.c_str(), -1, SQLITE_STATIC);
+                            sqlite3_bind_int(add_new_user_stmt, 3, 0);
+                            rc = sqlite3_step(add_new_user_stmt);
+                            if (rc != SQLITE_DONE) {
+                                std::cout << "Failed to step statement to add user name" << sqlite3_errmsg(db);
+                                failed = true;
+                            }
+                        }
+
+                        if (failed) {
                             resp = new createAccountResponse(false, "Internal database issue");
                         }
                         else {
+                            sqlite3_finalize(add_new_user_stmt);
                             resp = new createAccountResponse(true, "Database worked and didn't contain username");
                             connectedUser = car->user_name;
                         }
                     }
                 }
+            }
             break;
             
-            case PacketToServerType::LOGIN_REQUEST:
+            case PacketToServerType::LOGIN_REQUEST: {
                 std::cout << "Received a login request packet ";
                 req = new loginRequest(receiveBuffer);
                 lr = dynamic_cast<loginRequest *>(req);
                 std::cout << "with username: '" << lr->username << "' and password: '" << lr->password << "'.\n";
                 
                 // Check if username exists in users table
-                db_statement = "SELECT COUNT(*) FROM users WHERE user_name = '" + lr->username + "';";
-                if (sqlite3_exec(db, db_statement.c_str(), countCallback, &userExists, &zErrMsg) != SQLITE_OK) {
-                    std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
-                    sqlite3_free(zErrMsg);
-                    resp = new loginResult(false, "Internal database issue");
+                bool failed;
+                const char * password_check_tmplt = "SELECT pass_hash FROM users WHERE user_name = ?;";
+                sqlite3_stmt * password_check_stmt;
+                int rc = sqlite3_prepare_v2(db, password_check_tmplt, -1, &password_check_stmt, nullptr);
+                if (rc != SQLITE_OK) {
+                    std::cout << "Failed to prepared statement to check for password corresponding to user name: " << sqlite3_errmsg(db);
+                    failed = true;
                 }
-                else {
-                    if (userExists == 0) {
+                if (!failed) {
+                    sqlite3_bind_text(password_check_stmt, 1, lr->username.c_str(), -1, SQLITE_STATIC);
+                    rc = sqlite3_step(password_check_stmt);
+                    if (rc == SQLITE_DONE) {
                         resp = new loginResult(false, "User does not exist");
+                        sqlite3_finalize(password_check_stmt);
                     }
-                    else {
-                        // Get the stored password for this user
-                        db_statement = "SELECT pass_hash FROM users WHERE user_name = '" + lr->username + "';";
-                        std::string storedPassword;
-                        if (sqlite3_exec(db, db_statement.c_str(), passwordCallback, &storedPassword, &zErrMsg) != SQLITE_OK) {
+                    else if (rc != SQLITE_ROW) {
+                        std::cout << "Failed to step in statement to check for password corresponding to user name: " << sqlite3_errmsg(db);
+                        failed = true;
+                    }
+                }
+                if (!failed && rc == SQLITE_ROW) {
+                    const char * correct_pass_hash = (const char * )sqlite3_column_text(password_check_stmt, 0);
+                    
+                    // TODO:  implement password hashing
+                    if (lr->password == std::string(correct_pass_hash)) {
+                        resp = new loginResult(true, "Login successful");
+                        connectedUser = lr->username;
+                        // Add this username and IP to clientIPs
+                        {
+                            std::lock_guard<std::mutex> lock(clientMutex);
+                            clientIPs[lr->username] = clientIP;
+                        }
+                        
+                        // If login is successful, give them information
+                        
+                        // get incoming friend requests
+                        names.clear();
+                        db_statement = "SELECT sender FROM requests WHERE recipient = '" + connectedUser + "' AND hidden = FALSE;";
+                        if (sqlite3_exec(db, db_statement.c_str(), gatherStringsCallback, &names, &zErrMsg) != SQLITE_OK) {
                             std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
                             sqlite3_free(zErrMsg);
-                            resp = new loginResult(false, "Internal database issue");
+                        } 
+                        for (auto &name : names) {
+                            frf = std::make_shared<friendRequestForward>(connectedUser, name);
+                            sendOutPacket(connectedUser, frf);
                         }
-                        else {
-                            // TODO:  implement password hashing
-                            if (lr->password == storedPassword) {
-                                resp = new loginResult(true, "Login successful");
-                                connectedUser = lr->username;
-                                // Add this username and IP to clientIPs
-                                {
-                                    std::lock_guard<std::mutex> lock(clientMutex);
-                                    clientIPs[lr->username] = clientIP;
-                                }
-
-                                // If login is successful, give them information
-
-                                // get incoming friend requests
-                                names.clear();
-                                db_statement = "SELECT sender FROM requests WHERE recipient = '" + connectedUser + "' AND hidden = FALSE;";
-                                if (sqlite3_exec(db, db_statement.c_str(), gatherStringsCallback, &names, &zErrMsg) != SQLITE_OK) {
-                                    std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
-                                    sqlite3_free(zErrMsg);
-                                } 
-                                for (auto &name : names) {
-                                    frf = std::make_shared<friendRequestForward>(connectedUser, name);
-                                    sendOutPacket(connectedUser, frf);
-                                }
-
-                                // get pending friend requests
-                                names.clear();
-                                db_statement = "SELECT recipient FROM requests WHERE sender = '" + connectedUser + "';";
-                                if (sqlite3_exec(db, db_statement.c_str(), gatherStringsCallback, &names, &zErrMsg) != SQLITE_OK) {
-                                    std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
-                                    sqlite3_free(zErrMsg);
-                                } 
-                                for (auto &name : names) {
-                                    frr = std::make_shared<friendRequestResponse>(name, connectedUser, FriendRequestResponse::PENDING);
-                                    sendOutPacket(connectedUser, frr);
-                                }
-
-                                // get friend statuses and send friend statuses
-                                names.clear();
-                                db_statement = "SELECT right FROM friends WHERE left = '" + connectedUser + "';";
-                                if (sqlite3_exec(db, db_statement.c_str(), gatherStringsCallback, &names, &zErrMsg) != SQLITE_OK) {
-                                    std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
-                                    sqlite3_free(zErrMsg);
-                                }
-                                for (auto &name : names) {
-                                    std::cout << "Checking status of: " << name << std::endl;
-                                    std::unique_lock<std::mutex> lock(clientMutex);
-                                    // bool has_name = clientIPs.contains(name);
-                                    bool has_name = (clientIPs.find(name) != clientIPs.end());
-                                    lock.unlock();
-                                    if (has_name) {
-                                        fsu = std::make_shared<friendStatusUpdate>(name, FriendStatus::ONLINE);
-                                        sendOutPacket(connectedUser, fsu);
-                                        fsu = std::make_shared<friendStatusUpdate>(connectedUser, FriendStatus::ONLINE);
-                                        sendOutPacket(name, fsu);
-                                    }
-                                    else {
-                                        fsu = std::make_shared<friendStatusUpdate>(name, FriendStatus::OFFLINE);
-                                        sendOutPacket(connectedUser, fsu);
-                                    }
-                                }
+                                
+                        // get pending friend requests
+                        names.clear();
+                        db_statement = "SELECT recipient FROM requests WHERE sender = '" + connectedUser + "';";
+                        if (sqlite3_exec(db, db_statement.c_str(), gatherStringsCallback, &names, &zErrMsg) != SQLITE_OK) {
+                            std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
+                            sqlite3_free(zErrMsg);
+                        } 
+                        for (auto &name : names) {
+                            frr = std::make_shared<friendRequestResponse>(name, connectedUser, FriendRequestResponse::PENDING);
+                            sendOutPacket(connectedUser, frr);
+                        }
+                                
+                        // get friend statuses and send friend statuses
+                        names.clear();
+                        db_statement = "SELECT right FROM friends WHERE left = '" + connectedUser + "';";
+                        if (sqlite3_exec(db, db_statement.c_str(), gatherStringsCallback, &names, &zErrMsg) != SQLITE_OK) {
+                            std::cout << "Error in SQLite: " << std::string(zErrMsg) << std::endl;
+                            sqlite3_free(zErrMsg);
+                        }
+                        for (auto &name : names) {
+                            std::cout << "Checking status of: " << name << std::endl;
+                            std::unique_lock<std::mutex> lock(clientMutex);
+                            // bool has_name = clientIPs.contains(name);
+                            bool has_name = (clientIPs.find(name) != clientIPs.end());
+                            lock.unlock();
+                            if (has_name) {
+                                fsu = std::make_shared<friendStatusUpdate>(name, FriendStatus::ONLINE);
+                                sendOutPacket(connectedUser, fsu);
+                                fsu = std::make_shared<friendStatusUpdate>(connectedUser, FriendStatus::ONLINE);
+                                sendOutPacket(name, fsu);
                             }
                             else {
-                                resp = new loginResult(false, "Invalid password");
+                                fsu = std::make_shared<friendStatusUpdate>(name, FriendStatus::OFFLINE);
+                                sendOutPacket(connectedUser, fsu);
                             }
                         }
                     }
+                    else {
+                        resp = new loginResult(false, "Wrong password");
+                    }
                 }
+                else if (failed) {
+                    resp = new loginResult(false, "Internal database error");
+                }
+            }
+
             break;
             
             case PacketToServerType::FRIEND_REQUEST_SEND:
