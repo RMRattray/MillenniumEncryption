@@ -29,8 +29,10 @@ public:
 
     void showMainCentralWidget();
     void showLoginWidget();
+    void showError(QString message);
 
     LoginWidget *loginWidget;
+
     QWidget *mainCentralWidget;
     QFrame *leftFrame;
     QFrame *rightFrame;
@@ -41,6 +43,8 @@ public:
     QFrame *rightEmptyFrame;
     QLineEdit *rightTextBox;
     QPushButton *sendButton;
+
+    QLabel *errorScreen;
 
     ClientSocketManager * sock;
     ClientDatabaseManager * db;

@@ -21,6 +21,7 @@ signals:
     void mentionFriendRequest(QString friend_name);
     void mentionFriendResponse(QString friend_name, FriendRequestResponse response);
     void mentionMessage(QString friend_name, QString message);
+    void mentionSocketError(QString error_message);
 
 public slots:
     void sendAccountRequest(QString user_name, QString password);
