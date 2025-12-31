@@ -18,8 +18,8 @@ class MillenniumServerDatabaseManager {
     std::vector<std::string> getIncomingFriendRequests(std::string user_name);
     std::vector<std::string> getOutgoingFriendRequests(std::string user_name);
 
-    bool checkIfFriendRequest(std::string sender, std::string recipient);
-    bool checkIfFriend(std::string sender, std::string recipient);
+    int checkIfFriendRequest(std::string sender, std::string recipient);
+    int checkIfFriend(std::string sender, std::string recipient);
 
     int insertFriendRequest(std::string sender, std::string recipient);
     int hideFriendRequest(std::string sender, std::string recipient);
