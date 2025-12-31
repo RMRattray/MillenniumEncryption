@@ -26,6 +26,7 @@
 #endif
 
 #include "packet.h"
+#include "database.h"
 
 class MillenniumServer{
 
@@ -38,6 +39,7 @@ class MillenniumServer{
     void handleClient(socket_t, std::string);
     void sendOutPacket(std::string to, std::shared_ptr<packetFromServer> f);
 
+    MillenniumServerDatabaseManager dbm;
     sqlite3 *db;
     
     const static int PORT = 1999;

@@ -19,24 +19,10 @@
 #endif
 
 #include <packet.h>
+#include <database.h>
 #include <server.h>
 
 MillenniumServer::MillenniumServer() {
-    
-    // Open database
-    if (sqlite3_open("SCRAPE.db", &db)) {
-        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
-        return;
-    }
-    char * zErrMsg;
-    if (sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS users (user_name TEXT, pass_hash TEXT, hash_count INTEGER);", NULL, NULL, &zErrMsg) ||
-        sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS friends (left TEXT, right TEXT);", NULL, NULL, &zErrMsg) ||
-        sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS requests (recipient TEXT, sender TEXT, hidden INTEGER);", NULL, NULL, &zErrMsg))
-    {
-        fprintf(stderr, "Error occurred: %s\n", zErrMsg);
-        sqlite3_free(zErrMsg);
-    }
 
     // Set up winsock (Windows only)
 #ifdef _WIN32
@@ -157,7 +143,6 @@ MillenniumServer::~MillenniumServer() {
 #ifdef _WIN32
     WSACleanup();
 #endif
-    sqlite3_close(db);
 
     std::cout << "Server shutdown complete" << std::endl;
     return;

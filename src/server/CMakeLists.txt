@@ -9,6 +9,8 @@ add_executable(millennium_falcon
     main.cpp
     server.cpp
     server.h
+    database.cpp 
+    database.h
 )
 
 target_link_libraries(millennium_falcon PRIVATE 
