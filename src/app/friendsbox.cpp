@@ -8,6 +8,7 @@
 #include <string>
 #include <QString>
 #include "vector"
+#include <QScrollBar>
 
 FriendsBox::FriendsBox(QWidget *parent)
     : QWidget(parent)
@@ -25,6 +26,7 @@ FriendsBox::~FriendsBox()
 void FriendsBox::addNewFriend(int id, const QString &name, int status)
 {
     if (friendWidgets.contains(id) || friendNameToId.contains(name)) {
+        // return;
         qDebug() << "Adding duplicate friend";
         return;
     }
@@ -47,6 +49,7 @@ void FriendsBox::processFriendList(std::vector<QString> names) {
         addNewFriend(i, names[i], FriendStatus::OFFLINE);
         ++i;
     }
+    // qDebug() << "Added" << names.size() << "friends";
 }
 
 void FriendsBox::updateFriendStatus(const QString &username, int status)

@@ -8,6 +8,7 @@
 
 int main(int argc, char **argv)
 {
+    // printf("hi");
     QApplication app(argc, argv);
 
     // Get server address if one is present in command-line arguments

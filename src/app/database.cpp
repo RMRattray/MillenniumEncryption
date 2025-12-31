@@ -25,6 +25,17 @@ ClientDatabaseManager::ClientDatabaseManager(QObject *parent)
         return;
     }
 
+    // // Insert some dummy friends
+    // const char* insertDummyFriends =
+    //     "INSERT OR IGNORE INTO friends (friend_name) VALUES "
+    //     "('Alice'), ('Bob'), ('Carol'), ('Dave'), ('Joe Biden'), ('Whynoms'), ('Robert Song')";
+
+    // rc = sqlite3_exec(database, insertDummyFriends, nullptr, nullptr, nullptr);
+    // if (rc != SQLITE_OK) {
+    //     qDebug() << "Failed to insert dummy friends:" << sqlite3_errmsg(database);
+    //     // proceed even if insertion fails
+    // }
+
     // Create messages table
     const char* createMessagesTable = 
         "CREATE TABLE IF NOT EXISTS messages ("

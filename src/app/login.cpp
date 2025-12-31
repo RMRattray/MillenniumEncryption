@@ -38,6 +38,10 @@ LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent) {
 
     connect(createAccountInstead, SIGNAL(clicked()), this, SLOT(swapLoginPurpose()));
     connect(loginButton, SIGNAL(clicked()), this, SLOT(login()));
+
+    // Connect passwordEdit bar to logic
+    // If enter is pressed after password, it will immediately log you in
+    connect(passwordEdit, SIGNAL(returnPressed()), this, SLOT(login()));
 };
 
 LoginWidget::~LoginWidget() {

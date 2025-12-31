@@ -23,6 +23,7 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
     : QMainWindow(parent)
 {
     // Login widget takes up the entire screen
+    qDebug() << "hi";
     loginWidget = new LoginWidget(this);
 
     mainCentralWidget = new QWidget(this);
