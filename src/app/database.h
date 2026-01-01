@@ -42,6 +42,7 @@ signals:
 private:
     sqlite3 * database;
     QString queried_friend = "";
+    QString logged_in_user = "";
 };
 
 #endif // DATABASE_H
