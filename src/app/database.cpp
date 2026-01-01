@@ -283,3 +283,8 @@ void ClientDatabaseManager::queryMessages(QString friend_name, int count, int be
     
     emit outputMessageQuery(messages, firstMessageId);
 }
+
+void ClientDatabaseManager::onLogin(QString username) {
+    logged_in_user = username;
+    queryFriends();
+}

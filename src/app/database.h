@@ -39,6 +39,9 @@ signals:
     void reportOutgoingMessage(QString message, QString recipient);
     void reportNewFriend(int id, QString name, int status);
 
+public slots:
+    void onLogin(QString username);
+
 private:
     sqlite3 * database;
     QString queried_friend = "";

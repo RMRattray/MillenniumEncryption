@@ -14,9 +14,8 @@ public:
     ~ClientSocketManager();
     
 signals:
-    void mentionAccountResult(QString reason);
-    void mentionLoginResult(QString reason);
-    void mentionLoginSuccess();
+    void mentionAccountResult(bool result, QString reason);
+    void mentionLoginResult(bool result, QString reason);
     void mentionFriendStatus(QString friend_name, FriendStatus status);
     void mentionFriendRequest(QString friend_name);
     void mentionFriendResponse(QString friend_name, FriendRequestResponse response);
