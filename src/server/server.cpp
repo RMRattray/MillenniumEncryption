@@ -315,6 +315,7 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP)
                                 }
                             }
                         }
+                        else resp = new loginResult(false, "Wrong password");
                     }
                     break;
                 }
