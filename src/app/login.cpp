@@ -38,6 +38,7 @@ LoginWidget::LoginWidget(QWidget *parent) : QWidget(parent) {
 
     connect(createAccountInstead, SIGNAL(clicked()), this, SLOT(swapLoginPurpose()));
     connect(loginButton, SIGNAL(clicked()), this, SLOT(login()));
+    connect(passwordEdit, SIGNAL(returnPressed()), this, SLOT(login()));
 };
 
 LoginWidget::~LoginWidget() {
