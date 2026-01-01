@@ -88,14 +88,18 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
     // connect(sendButton, &QPushButton::clicked, this, &MainWindow::onSendButtonClicked);
     connect(sock, &ClientSocketManager::mentionSocketError, this, &MainWindow::showError);
     
-    connect(sock, &ClientSocketManager::mentionLoginSuccess, this, &MainWindow::showMainCentralWidget);
-    connect(sock, &ClientSocketManager::mentionAccountResult, loginWidget, &LoginWidget::handleFailure);
-    connect(sock, &ClientSocketManager::mentionLoginResult, loginWidget, &LoginWidget::handleFailure);
-    
+    // Login widget sets login or account creation requests to the socket manager
     connect(loginWidget, &LoginWidget::requestAccount, sock, &ClientSocketManager::sendAccountRequest);
     connect(loginWidget, &LoginWidget::requestLogin, sock, &ClientSocketManager::sendLoginRequest);
 
-    connect(sock, &ClientSocketManager::mentionLoginSuccess, db, &ClientDatabaseManager::queryFriends);
+    // Socket manager sends the results to the login widget
+    connect(sock, &ClientSocketManager::mentionAccountResult, loginWidget, &LoginWidget::handleLoginResult);
+    connect(sock, &ClientSocketManager::mentionLoginResult, loginWidget, &LoginWidget::handleLoginResult);
+    
+    // If login is successful, login widget tells the main window and the database manager user's handle
+    connect(loginWidget, &LoginWidget::reportLoginSuccess, this, &MainWindow::showMainCentralWidget);
+    connect(loginWidget, &LoginWidget::reportLoginSuccess, db, &ClientDatabaseManager::onLogin);
+    // And the database reports known friends of that handle to the friends box
     connect(db, &ClientDatabaseManager::outputFriendList, friendsBox, &FriendsBox::processFriendList);
     
     connect(sock, &ClientSocketManager::mentionFriendStatus, friendsBox, &FriendsBox::updateFriendStatus);
@@ -126,7 +130,8 @@ void MainWindow::showLoginWidget()
     setCentralWidget(loginWidget);
 }
 
-void MainWindow::showMainCentralWidget() {
+void MainWindow::showMainCentralWidget(QString username) {
+    // TODO:  Put the username on screen somewhere?
     setCentralWidget(mainCentralWidget);
 }
 

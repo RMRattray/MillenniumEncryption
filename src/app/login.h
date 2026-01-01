@@ -17,8 +17,9 @@ public:
 signals:
     void requestAccount(QString username, QString password);
     void requestLogin(QString username, QString password);
+    void reportLoginSuccess(QString username);
 public slots:
-    void handleFailure(QString reason);
+    void handleLoginResult(bool result, QString reason);
 private slots:
     void swapLoginPurpose();
     void login();

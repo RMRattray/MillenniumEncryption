@@ -27,7 +27,7 @@ public:
     explicit MainWindow(QString server_address, QWidget *parent = nullptr);
     ~MainWindow();
 
-    void showMainCentralWidget();
+    void showMainCentralWidget(QString username);
     void showLoginWidget();
     void showError(QString message);
 

@@ -17,7 +17,8 @@ ClientDatabaseManager::ClientDatabaseManager(QObject *parent)
     const char* createFriendsTable = 
         "CREATE TABLE IF NOT EXISTS friends ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-        "friend_name TEXT NOT NULL)";
+        "friend_name TEXT NOT NULL, "
+        "user TEXT NOT NULL)";
 
     rc = sqlite3_exec(database, createFriendsTable, nullptr, nullptr, nullptr);
     if (rc != SQLITE_OK) {
@@ -56,8 +57,9 @@ bool ClientDatabaseManager::hasFriend(QString name)
     if (!database) return false;
 
     std::string namechars = name.toStdString();
+    std::string aschars = logged_in_user.toStdString();
 
-    const char *sql_chk = "SELECT COUNT(*) FROM friends WHERE friend_name = ? ;";
+    const char *sql_chk = "SELECT COUNT(*) FROM friends WHERE friend_name = ? AND user = ? ;";
     sqlite3_stmt *stmt_chk;
     int rc = sqlite3_prepare_v2(database, sql_chk, -1, &stmt_chk, nullptr);
     if (rc != SQLITE_OK) {
@@ -65,6 +67,7 @@ bool ClientDatabaseManager::hasFriend(QString name)
         return false;
     }
     sqlite3_bind_text(stmt_chk, 1, namechars.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt_chk, 2, aschars.c_str(), -1, SQLITE_STATIC);
     rc = sqlite3_step(stmt_chk);
     int ans = sqlite3_column_int(stmt_chk, 0);
     sqlite3_finalize(stmt_chk);
@@ -81,7 +84,7 @@ void ClientDatabaseManager::insertFriend(QString name)
         return;
     }
 
-    const char* sql = "INSERT INTO friends (friend_name) VALUES (?)";
+    const char* sql = "INSERT INTO friends (friend_name, user) VALUES (?, ?)";
     sqlite3_stmt* stmt;
     
     int rc = sqlite3_prepare_v2(database, sql, -1, &stmt, nullptr);
@@ -91,8 +94,10 @@ void ClientDatabaseManager::insertFriend(QString name)
     }
 
     std::string namechars = name.toStdString();
+    std::string aschars = logged_in_user.toStdString();
 
     sqlite3_bind_text(stmt, 1, namechars.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, aschars.c_str(), -1, SQLITE_STATIC);
     
     rc = sqlite3_step(stmt);
     if (rc != SQLITE_DONE) {
@@ -117,7 +122,7 @@ void ClientDatabaseManager::insertMessage(QString message, bool original, QStrin
     qDebug() << "Friend name is now: " << friend_name;
 
     // First get the friend_id from the friends table
-    const char* getFriendIdSql = "SELECT id FROM friends WHERE friend_name = ?";
+    const char* getFriendIdSql = "SELECT id FROM friends WHERE friend_name = ? AND user = ?";
     sqlite3_stmt* getFriendStmt;
     
     int rc = sqlite3_prepare_v2(database, getFriendIdSql, -1, &getFriendStmt, nullptr);
@@ -127,7 +132,9 @@ void ClientDatabaseManager::insertMessage(QString message, bool original, QStrin
     }
 
     std::string namechars = friend_name.toStdString();
+    std::string aschars = logged_in_user.toStdString();
     sqlite3_bind_text(getFriendStmt, 1, namechars.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(getFriendStmt, 2, aschars.c_str(), -1, SQLITE_STATIC);
     
     int friendId = -1;
     if (sqlite3_step(getFriendStmt) == SQLITE_ROW) {
@@ -173,7 +180,7 @@ void ClientDatabaseManager::queryFriends()
     if (!database) return;
 
     std::vector<QString> friends;
-    const char* sql = "SELECT friend_name FROM friends ORDER BY friend_name";
+    const char* sql = "SELECT friend_name FROM friends WHERE user = ? ORDER BY friend_name";
     sqlite3_stmt* stmt;
     
     int rc = sqlite3_prepare_v2(database, sql, -1, &stmt, nullptr);
@@ -181,6 +188,9 @@ void ClientDatabaseManager::queryFriends()
         qDebug() << "Failed to prepare query friends statement:" << sqlite3_errmsg(database);
         return;
     }
+
+    std::string aschars = logged_in_user.toStdString();
+    sqlite3_bind_text(stmt, 1, aschars.c_str(), -1, SQLITE_STATIC);
 
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         const char* friendName = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
@@ -202,7 +212,7 @@ void ClientDatabaseManager::queryMessages(QString friend_name, int count, int be
     if (!database) return;
 
     // First get the friend_id
-    const char* getFriendIdSql = "SELECT id FROM friends WHERE friend_name = ?";
+    const char* getFriendIdSql = "SELECT id FROM friends WHERE friend_name = ? AND user = ?";
     sqlite3_stmt* getFriendStmt;
     
     int rc = sqlite3_prepare_v2(database, getFriendIdSql, -1, &getFriendStmt, nullptr);
@@ -212,7 +222,9 @@ void ClientDatabaseManager::queryMessages(QString friend_name, int count, int be
     }
 
     std::string name_as_str = friend_name.toStdString();
+    std::string aschars = logged_in_user.toStdString();
     sqlite3_bind_text(getFriendStmt, 1, name_as_str.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(getFriendStmt, 2, aschars.c_str(), -1, SQLITE_STATIC);
     
     int friendId = -1;
     if (sqlite3_step(getFriendStmt) == SQLITE_ROW) {
@@ -270,4 +282,9 @@ void ClientDatabaseManager::queryMessages(QString friend_name, int count, int be
     sqlite3_finalize(stmt);
     
     emit outputMessageQuery(messages, firstMessageId);
+}
+
+void ClientDatabaseManager::onLogin(QString username) {
+    logged_in_user = username;
+    queryFriends();
 }

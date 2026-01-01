@@ -63,7 +63,8 @@ void LoginWidget::login() {
     else emit requestLogin(usernameEdit->text(), passwordEdit->text());
 }
 
-void LoginWidget::handleFailure(QString reason) {
-    if (creating_account) message->setText("Failed to create account: " + reason);
+void LoginWidget::handleLoginResult(bool result, QString reason) {
+    if (result) reportLoginSuccess(usernameEdit->text()); // should this be stored on login attempt in case user types before login result?
+    else if (creating_account) message->setText("Failed to create account: " + reason);
     else message->setText("Failed to log in: " + reason);
 }
