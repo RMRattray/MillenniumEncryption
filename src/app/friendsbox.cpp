@@ -8,6 +8,8 @@
 #include <string>
 #include <QString>
 #include "vector"
+#include <QScrollArea>
+#include <QFrame>
 
 FriendsBox::FriendsBox(QWidget *parent)
     : QWidget(parent)
@@ -15,6 +17,17 @@ FriendsBox::FriendsBox(QWidget *parent)
     layout = new QVBoxLayout(this);
     layout->setSpacing(5);
     layout->setContentsMargins(5, 5, 5, 5);
+
+    scroll = new QScrollArea(this);
+    // scroll->setWidget(frame);
+
+    QWidget* scrollContent = new QWidget(scroll);
+    scrollContent->setLayout(new QVBoxLayout(scrollContent));
+    scrollContent->layout()->setSpacing(5);
+    scrollContent->layout()->setContentsMargins(5, 5, 5, 5);
+    
+    scroll->setWidget(scrollContent);
+    layout->addWidget(scroll);
 }
 
 FriendsBox::~FriendsBox()

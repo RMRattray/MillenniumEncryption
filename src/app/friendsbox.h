@@ -5,6 +5,7 @@
 #include <QVBoxLayout>
 #include <QMap>
 #include <QLabel>
+#include <QScrollArea>
 #include <sqlite3.h>
 #include <vector>
 
@@ -29,6 +30,8 @@ signals:
 
 private:
     QVBoxLayout *layout;
+    QFrame* frame;
+    QScrollArea* scroll;
     QMap<int, FriendBox*> friendWidgets;
     QMap<QString, int> friendNameToId;
     int selectedFriendId;
