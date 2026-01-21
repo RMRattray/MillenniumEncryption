@@ -127,17 +127,26 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
 
 void MainWindow::showLoginWidget()
 {
+    loginWidget->show();
     setCentralWidget(loginWidget);
+    errorScreen->hide();
+    mainCentralWidget->hide();
 }
 
 void MainWindow::showMainCentralWidget(QString username) {
     // TODO:  Put the username on screen somewhere?
+    mainCentralWidget->show();
     setCentralWidget(mainCentralWidget);
+    errorScreen->hide();
+    loginWidget->hide();
 }
 
 void MainWindow::showError(QString message) {
-    setCentralWidget(errorScreen);
     errorScreen->setText(message);
+    errorScreen->show();
+    setCentralWidget(errorScreen);
+    loginWidget->hide();
+    mainCentralWidget->hide();
 }
 
 MainWindow::~MainWindow()
