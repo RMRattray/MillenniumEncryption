@@ -18,6 +18,9 @@ target_link_libraries(millennium_serpent PRIVATE
     sqlite
 )
 
+qt_add_resources(APP_RESOURCES ../../resources.qrc)
+target_sources(millennium_serpent PRIVATE ${APP_RESOURCES})
+
 # set_target_properties(millennium_serpent PROPERTIES
 #     WIN32_EXECUTABLE ON
 #     MACOSX_BUNDLE ON

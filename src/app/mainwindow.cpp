@@ -18,14 +18,32 @@
 #include <QIcon>
 #include <QSpacerItem>
 #include <QTcpSocket>
+#include <QPixmap>
+#include <QDebug>
 
 MainWindow::MainWindow(QString server_address, QWidget *parent)
     : QMainWindow(parent)
 {
-    // Login widget takes up the entire screen
-    loginWidget = new LoginWidget(this);
+    // Add a logo to the top of the main window!
+    QLabel * logo = new QLabel(this);
+    QPixmap pixmap(":/images/badlogo.png");
+    logo->setPixmap(pixmap);
+    qDebug() << pixmap.width() << " " << pixmap.height();
+    logo->setAlignment(Qt::AlignCenter);
 
-    mainCentralWidget = new QWidget(this);
+    // Logo, and focus screen (either login, main, or error) go in layout together
+    QWidget * container = new QWidget(this);
+    QVBoxLayout *layout = new QVBoxLayout(container); 
+    layout->addWidget(logo);
+    setCentralWidget(container);
+    logo->show();
+
+    // Login widget takes up the entire screen
+    loginWidget = new LoginWidget(container);
+    layout->addWidget(loginWidget);
+
+    mainCentralWidget = new QWidget(container);
+    layout->addWidget(mainCentralWidget);
     QHBoxLayout *mainLayout = new QHBoxLayout(mainCentralWidget);
     // Left frame
     leftFrame = new QFrame(mainCentralWidget);
@@ -76,7 +94,8 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
     mainLayout->setStretch(0, 0);
     mainLayout->setStretch(1, 1);
 
-    errorScreen = new QLabel(this);
+    errorScreen = new QLabel(container);
+    layout->addWidget(errorScreen);
 
     db = new ClientDatabaseManager(this);
     sock = new ClientSocketManager(server_address, this);
@@ -128,7 +147,6 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
 void MainWindow::showLoginWidget()
 {
     loginWidget->show();
-    setCentralWidget(loginWidget);
     errorScreen->hide();
     mainCentralWidget->hide();
 }
@@ -136,7 +154,6 @@ void MainWindow::showLoginWidget()
 void MainWindow::showMainCentralWidget(QString username) {
     // TODO:  Put the username on screen somewhere?
     mainCentralWidget->show();
-    setCentralWidget(mainCentralWidget);
     errorScreen->hide();
     loginWidget->hide();
 }
@@ -144,7 +161,6 @@ void MainWindow::showMainCentralWidget(QString username) {
 void MainWindow::showError(QString message) {
     errorScreen->setText(message);
     errorScreen->show();
-    setCentralWidget(errorScreen);
     loginWidget->hide();
     mainCentralWidget->hide();
 }
