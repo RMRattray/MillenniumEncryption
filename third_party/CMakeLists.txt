@@ -4,7 +4,7 @@ if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/sqlite-amalgamation-3510100" AND IS_DIRE
 elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/sqlite-amalgamation-3500300" AND IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/sqlite-amalgamation-3500300")
     set(SQLITE_DIR "sqlite-amalgamation-3500300")
 else()
-    message(SEND_ERROR "SQLite3 not found.  Go to sqlite3.org, download the source code as an amalgamation, and extract it in the 'third_party' folder.")
+    message(SEND_ERROR "SQLite3 not found.  Go to sqlite.org, download the source code as an amalgamation, and extract it in the 'third_party' folder.")
 endif()
 
 # Link SQLite3 as static library
