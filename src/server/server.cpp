@@ -197,7 +197,6 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
         // Receive data from the client
         int rbyteCount;
         {
-            std::lock_guard<std::mutex> myLock(*(socketMutexes[clientID]));
             rbyteCount = recv(clientSocket, (char *)receiveBuffer, sizeof(receiveBuffer) - 1, 0);
 
             std::cout << "Received info on socket: " << rbyteCount << " bytes\n";
@@ -505,21 +504,24 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
 }
 
 void MillenniumServer::sendOutPacket(std::string to, std::shared_ptr<packetFromServer> f) {
-    std::cout << "Sending a packet to " << to << std::endl;
-    std::unique_lock infoLock(clientMutex);
-    if (clientIDs.find(to) == clientIDs.end()) {
-        std::cout << "That user is not online.\n";
-        return;
-    }
+    // Step 1: collect target socket IDs under clientMutex, then release
+    std::vector<long long int> targetIDs;
+    {
+        std::lock_guard<std::mutex> infoLock(clientMutex);
+        auto range = clientIDs.equal_range(to);
+        if (range.first == range.second) {
+            std::cout << to << " is not online.\n";
+            return;
+        }
+        for (auto i = range.first; i != range.second; ++i) {
+            targetIDs.push_back(i->second);
+        }
+    } // clientMutex released here
 
-    auto range = clientIDs.equal_range(to);
-
-    for (auto i = range.first; i != range.second; ++i) {
-        long long int connectionID = i->second;
-        std::cout << "Bob is on connectionID: " << connectionID << std::endl;
+    for (long long int connectionID : targetIDs) {
+        std::cout << to << " is on connectionID: " << connectionID << std::endl;
         std::unique_lock socketLock(*(socketMutexes[connectionID]));
         socket_t destSocket = clientSockets[connectionID];
-        infoLock.unlock();
 
         unsigned char packet[PACKET_BUFFER_SIZE + 1];
         packet[PACKET_BUFFER_SIZE] = 0;
