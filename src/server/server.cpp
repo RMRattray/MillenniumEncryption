@@ -190,6 +190,7 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
     packetFromServer * resp;
 
     std::string connectedUser = "";
+    bool loggedIn = false;
     std::unordered_map<std::string, long long int>::iterator myIDLocator;
 
     while (serverRunning) {
@@ -250,6 +251,7 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
                             connectedUser = car->user_name;
                             {
                                 std::lock_guard<std::mutex> lock(clientMutex);
+                                loggedIn = true;
                                 myIDLocator = clientIDs.insert( { connectedUser, clientID } );
                             }
                         }
@@ -287,6 +289,7 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
                             connectedUser = lr->username;
                             {
                                 std::lock_guard<std::mutex> lock(clientMutex);
+                                loggedIn = true;
                                 myIDLocator = clientIDs.insert( { connectedUser, clientID } );
                             }
 
@@ -495,7 +498,7 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
         std::lock_guard<std::mutex> lock(clientMutex);
         clientSockets.erase(clientID);
         socketMutexes.erase(clientID);
-        clientIDs.erase(myIDLocator);
+        if (loggedIn) clientIDs.erase(myIDLocator);
     }
     closesocket(clientSocket);
     std::cout << "Client " << clientIP << " connection closed" << std::endl;
