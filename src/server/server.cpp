@@ -195,6 +195,8 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP)
         {
             std::lock_guard<std::mutex> myLock(*(socketMutexes[clientIP]));
             rbyteCount = recv(clientSocket, (char *)receiveBuffer, sizeof(receiveBuffer) - 1, 0);
+
+            std::cout << "Received info on socket: " << rbyteCount << " bytes\n";
         }
         if (rbyteCount <= 0) {
             if (rbyteCount == 0) {
