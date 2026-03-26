@@ -516,6 +516,7 @@ void MillenniumServer::sendOutPacket(std::string to, std::shared_ptr<packetFromS
 
     for (auto i = range.first; i != range.second; ++i) {
         long long int connectionID = i->second;
+        std::cout << "Bob is on connectionID: " << connectionID << std::endl;
         std::unique_lock socketLock(*(socketMutexes[connectionID]));
         socket_t destSocket = clientSockets[connectionID];
         infoLock.unlock();
