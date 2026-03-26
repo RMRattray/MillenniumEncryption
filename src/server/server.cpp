@@ -91,6 +91,7 @@ MillenniumServer::MillenniumServer() {
 
 void MillenniumServer::spin() {
     serverRunning = true;
+    long long int clientID = 23;
     while (serverRunning) {
         socket_t clientSocket = INVALID_SOCKET_VALUE;
         sockaddr_in clientAddr;
@@ -98,6 +99,7 @@ void MillenniumServer::spin() {
 
         std::cout << "About to run the 'accept' function:\n";
         clientSocket = accept(serverSocket, reinterpret_cast<struct sockaddr*>(&clientAddr), &clientAddrLen);
+        ++clientID;
         std::cout << "I've run the 'accept' function\n";
         if (clientSocket == INVALID_SOCKET_VALUE) {
             std::cout << "Accept failed: " << WSAGetLastError() << std::endl;
@@ -112,9 +114,9 @@ void MillenniumServer::spin() {
         // Add client to map, create new thread to handle the client
         {
             std::lock_guard<std::mutex> lock(clientMutex);
-            clientSockets[clientIPStr] = clientSocket;
-            socketMutexes[clientIPStr] = std::make_shared<std::mutex>();
-            clientThreads.emplace_back(&MillenniumServer::handleClient, this, clientSocket, clientIPStr);
+            clientSockets[clientID] = clientSocket;
+            socketMutexes[clientID] = std::make_shared<std::mutex>();
+            clientThreads.emplace_back(&MillenniumServer::handleClient, this, clientSocket, clientIPStr, clientID);
         }
 
         std::cout << "Total connected clients: " << clientSockets.size() << std::endl;
@@ -168,8 +170,8 @@ int gatherStringsCallback(void *data, int argc, char **argv, char **azColName) {
     return 0;
 }
 
-void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP) {
-    std::cout << "New client connected from: " << clientIP << std::endl;
+void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP, long long int clientID) {
+    std::cout << "New client connected from: " << clientIP << " with ID " << clientID << std::endl;
 
     unsigned char receiveBuffer[PACKET_BUFFER_SIZE + 1];
     receiveBuffer[PACKET_BUFFER_SIZE] = 0;
@@ -188,12 +190,13 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP)
     packetFromServer * resp;
 
     std::string connectedUser = "";
+    std::unordered_map<std::string, long long int>::iterator myIDLocator;
 
     while (serverRunning) {
         // Receive data from the client
         int rbyteCount;
         {
-            std::lock_guard<std::mutex> myLock(*(socketMutexes[clientIP]));
+            std::lock_guard<std::mutex> myLock(*(socketMutexes[clientID]));
             rbyteCount = recv(clientSocket, (char *)receiveBuffer, sizeof(receiveBuffer) - 1, 0);
 
             std::cout << "Received info on socket: " << rbyteCount << " bytes\n";
@@ -247,7 +250,7 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP)
                             connectedUser = car->user_name;
                             {
                                 std::lock_guard<std::mutex> lock(clientMutex);
-                                clientIPs[connectedUser] = clientIP;
+                                myIDLocator = clientIDs.insert( { connectedUser, clientID } );
                             }
                         }
                         break;
@@ -284,7 +287,7 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP)
                             connectedUser = lr->username;
                             {
                                 std::lock_guard<std::mutex> lock(clientMutex);
-                                clientIPs[connectedUser] = clientIP;
+                                myIDLocator = clientIDs.insert( { connectedUser, clientID } );
                             }
 
                             // For pre-existing user, retrieve relevant information:
@@ -301,7 +304,7 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP)
                             // Friends and statuses
                             for (auto& name : dbm.getFriendList(connectedUser)) {
                                 std::unique_lock<std::mutex> lock(clientMutex);
-                                bool friend_is_online = (clientIPs.find(name) != clientIPs.end());
+                                bool friend_is_online = (clientIDs.find(name) != clientIDs.end());
                                 lock.unlock();
 
                                 // If friend is online, inform both parties; else, inform this party
@@ -374,7 +377,7 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP)
                             std::cout << "Checking status of: " << fra->from << std::endl;
                             std::unique_lock<std::mutex> lock(clientMutex);
 
-                            bool friend_is_online = (clientIPs.find(fra->from) != clientIPs.end());
+                            bool friend_is_online = (clientIDs.find(fra->from) != clientIDs.end());
                             lock.unlock();
                             if (friend_is_online) {
                                 fsu = std::make_shared<friendStatusUpdate>(fra->from, FriendStatus::ONLINE);
@@ -419,11 +422,11 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP)
                 }
                 std::cout << "with message: '" << ms->message << "' to recipient: '" << ms->recipient << "'.\n";
                 
-                // Check if the recipient is online (in clientIPs)
+                // Check if the recipient is online (in clientIDs)
                 recipientOnline = false;
                 {
                     std::lock_guard<std::mutex> lock(clientMutex);
-                    recipientOnline = (clientIPs.find(ms->recipient) != clientIPs.end());
+                    recipientOnline = (clientIDs.find(ms->recipient) != clientIDs.end());
                 }
                 
                 resp = new messageResponse(recipientOnline);
@@ -448,7 +451,7 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP)
 
         if (resp) {
             std::cout << "To the connected user, sending a packet of type ";
-            std::lock_guard<std::mutex> myLock(*(socketMutexes[clientIP]));
+            std::lock_guard<std::mutex> myLock(*(socketMutexes[clientID]));
 
             switch (resp->type) {
                 case (PacketFromServerType::ACCOUNT_RESULT):
@@ -490,9 +493,9 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP)
     // Clean up client connection
     {
         std::lock_guard<std::mutex> lock(clientMutex);
-        clientSockets.erase(clientIP);
-        socketMutexes.erase(clientIP);
-        clientIPs.erase(connectedUser);
+        clientSockets.erase(clientID);
+        socketMutexes.erase(clientID);
+        clientIDs.erase(myIDLocator);
     }
     closesocket(clientSocket);
     std::cout << "Client " << clientIP << " connection closed" << std::endl;
@@ -501,28 +504,33 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP)
 void MillenniumServer::sendOutPacket(std::string to, std::shared_ptr<packetFromServer> f) {
     std::cout << "Sending a packet to " << to << std::endl;
     std::unique_lock infoLock(clientMutex);
-    if (clientIPs.find(to) == clientIPs.end()) {
+    if (clientIDs.find(to) == clientIDs.end()) {
         std::cout << "That user is not online.\n";
         return;
     }
-    std::string destIPStr = clientIPs[to];
-    std::unique_lock socketLock(*(socketMutexes[destIPStr]));
-    socket_t destSocket = clientSockets[destIPStr];
-    infoLock.unlock();
 
-    unsigned char packet[PACKET_BUFFER_SIZE + 1];
-    packet[PACKET_BUFFER_SIZE] = 0;
+    auto range = clientIDs.equal_range(to);
 
-    int sbyteCount;
+    for (auto i = range.first; i != range.second; ++i) {
+        long long int connectionID = i->second;
+        std::unique_lock socketLock(*(socketMutexes[connectionID]));
+        socket_t destSocket = clientSockets[connectionID];
+        infoLock.unlock();
 
-    while (f->write_to_packet(packet)) {
+        unsigned char packet[PACKET_BUFFER_SIZE + 1];
+        packet[PACKET_BUFFER_SIZE] = 0;
+
+        int sbyteCount;
+
+        while (f->write_to_packet(packet)) {
+            sbyteCount = send(destSocket, (char *)packet, PACKET_BUFFER_SIZE, 0);
+            if (sbyteCount == SOCKET_ERROR_VALUE) {
+                std::cout << "Error sending friend status to connection of ID " << connectionID << ": " << WSAGetLastError() << std::endl;
+            }
+        }
         sbyteCount = send(destSocket, (char *)packet, PACKET_BUFFER_SIZE, 0);
         if (sbyteCount == SOCKET_ERROR_VALUE) {
-            std::cout << "Error sending friend status to client " << destIPStr << ": " << WSAGetLastError() << std::endl;
+            std::cout << "Error sending friend status to client " << connectionID << ": " << WSAGetLastError() << std::endl;
         }
-    }
-    sbyteCount = send(destSocket, (char *)packet, PACKET_BUFFER_SIZE, 0);
-    if (sbyteCount == SOCKET_ERROR_VALUE) {
-        std::cout << "Error sending friend status to client " << destIPStr << ": " << WSAGetLastError() << std::endl;
     }
 }
