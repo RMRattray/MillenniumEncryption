@@ -1,5 +1,5 @@
 #include <sqlite3.h>
-#include <map>
+#include <unordered_map>
 #include <thread>
 #include <vector>
 #include <mutex>
@@ -36,7 +36,7 @@ class MillenniumServer{
     void spin();
 
     private:
-    void handleClient(socket_t, std::string);
+    void handleClient(socket_t, std::string, long long int);
     void sendOutPacket(std::string to, std::shared_ptr<packetFromServer> f);
 
     MillenniumServerDatabaseManager dbm;
@@ -48,7 +48,7 @@ class MillenniumServer{
     
     std::mutex clientMutex; // Mutex for accessing the below
     std::vector<std::thread> clientThreads; // list of threads
-    std::map<std::string, socket_t> clientSockets; // list of sockets by IP address
-    std::map<std::string, std::string> clientIPs; // list of IP addresses by user name
-    std::map<std::string, std::shared_ptr<std::mutex>> socketMutexes; // mutexes for each socket, by IP address
+    std::unordered_map<long long int, socket_t> clientSockets; // list of sockets by connection ID
+    std::unordered_multimap<std::string, long long int> clientIDs; // list of IDs by user name
+    std::unordered_map<long long int, std::shared_ptr<std::mutex>> socketMutexes; // mutexes for each socket, by ID
 };
