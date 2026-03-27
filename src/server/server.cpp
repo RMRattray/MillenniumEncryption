@@ -398,8 +398,8 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
                     case FriendRequestResponse::REJECT:
                         // Forward response and remove from database in ACCEPT **OR** REJECT case
                         frr = std::make_shared<friendRequestResponse>(connectedUser, fra->from, fra->response);
-                        std::cout << "Passing on that information to " << fra->to;
-                        sendOutPacket(fra->to, frr);
+                        std::cout << "Passing on that information to " << fra->from;
+                        sendOutPacket(fra->from, frr);
                         std::cout << "\tand should be removing it from the database" << std::endl;
                         dbm.removeFriendRequest(fra->from, connectedUser);
                         break;
