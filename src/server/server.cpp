@@ -381,20 +381,16 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
 
                             bool friend_is_online = (clientIDs.find(fra->from) != clientIDs.end());
                             lock.unlock();
-                            if (friend_is_online) {
-                                fsu = std::make_shared<friendStatusUpdate>(fra->from, FriendStatus::ONLINE);
-                                sendOutPacket(connectedUser, fsu);
 
-                                // TODO:  inform new friend that user is online
-                                // Note that the they are informed of the result in in the below case
-                                // (hence no break statement)
-                            }
-                            else {
-                                fsu = std::make_shared<friendStatusUpdate>(fra->from, FriendStatus::OFFLINE);
-                                sendOutPacket(connectedUser, fsu);
+                            fsu = std::make_shared<friendStatusUpdate>(fra->from, friend_is_online ? FriendStatus::ONLINE : FriendStatus::OFFLINE);
+                            sendOutPacket(connectedUser, fsu);
+
+                            if (friend_is_online) {
+                                fsu = std::make_shared<friendStatusUpdate>(connectedUser, FriendStatus::ONLINE);
+                                sendOutPacket(fra->from, fsu);
                             }
                         }
-                    // DO NOT PUT BREAK STATEMENT HERE
+                        break;
                     case FriendRequestResponse::REJECT:
                         // Forward response and remove from database in ACCEPT **OR** REJECT case
                         frr = std::make_shared<friendRequestResponse>(connectedUser, fra->from, fra->response);
