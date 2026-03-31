@@ -1,9 +1,10 @@
 #ifndef MLNM_PACKET_H
 #define MLNM_PACKET_H
 
-#define PACKET_BUFFER_SIZE 256
+#define PACKET_BUFFER_SIZE 128
 
 #include <string>
+#include <cstdint>
 
 enum PacketToServerType {
     CREATE_ACCOUNT = 1,
