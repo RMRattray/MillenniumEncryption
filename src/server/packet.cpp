@@ -121,12 +121,12 @@ messageSend::messageSend(std::string msg, std::string recip) {
 messageSend::messageSend(unsigned char * buffer) {
     type = PacketToServerType::MESSAGE_SEND;
     if (*buffer != type) throw std::runtime_error("Attempting to read message send from wrong sort of packet");
-    if (buffer[PACKET_BUFFER_SIZE] != 0) throw std::runtime_error("Buffer not safely terminated");
+    if (buffer[PACKET_BUFFER_SIZE - 1] != 0) throw std::runtime_error("Buffer not safely terminated");
     
     bytes_remaining = *(uint32_t *)(buffer + 4);
     recipient = std::string((char *)buffer + 8);
-    uint32_t readable = std::min((uint32_t)(PACKET_BUFFER_SIZE - 9 - recipient.size()), bytes_remaining);
-    message = std::string((char *)buffer + 9 + recipient.size(), readable);
+    uint32_t readable = std::min((uint32_t)(PACKET_BUFFER_SIZE - 10 - recipient.size()), bytes_remaining);
+    message = std::string((char *)buffer + PACKET_BUFFER_SIZE - readable - 1);
     bytes_remaining -= readable;
 }
 
@@ -135,15 +135,18 @@ int messageSend::write_to_packet(unsigned char * buffer) {
     *((uint32_t *)(buffer + 4)) = bytes_remaining;
 
     uint32_t writeable;
+    // When writing for the first time, bytes_remaining will be the whole size of the message.  Copy the recipient
     if (bytes_remaining == message.size()) {
         recipient.copy((char *)buffer + 8, recipient.size());
         *(buffer + 8 + recipient.size()) = 0;
-        writeable = PACKET_BUFFER_SIZE - 9 - recipient.size();
+        writeable = PACKET_BUFFER_SIZE - 10 - recipient.size();
     }
-    else writeable = PACKET_BUFFER_SIZE - 8;
+    else writeable = PACKET_BUFFER_SIZE - 9;
 
     if (writeable > bytes_remaining) writeable = bytes_remaining;
-    message.substr(message.size() - bytes_remaining, writeable).copy((char *)buffer + PACKET_BUFFER_SIZE - writeable, writeable);
+    // Always writes near the end of the packet
+    message.substr(message.size() - bytes_remaining, writeable).copy((char *)buffer + PACKET_BUFFER_SIZE - 1 - writeable, writeable);
+    buffer[PACKET_BUFFER_SIZE - 1] = 0;
     bytes_remaining -= writeable;
     
     return bytes_remaining;
@@ -152,8 +155,8 @@ int messageSend::write_to_packet(unsigned char * buffer) {
 int messageSend::read_from_packet(unsigned char * buffer) {
     if (*buffer != type) throw std::runtime_error("Attempting to read message send from wrong sort of packet");
     if (bytes_remaining != *(uint32_t *)(buffer + 4)) throw std::runtime_error("Packet length inconsistent");
-    uint32_t readable = std::min((uint32_t)(PACKET_BUFFER_SIZE - 8), bytes_remaining);
-    message += std::string((char *)buffer + 8, readable);
+    uint32_t readable = std::min((uint32_t)(PACKET_BUFFER_SIZE - 9), bytes_remaining);
+    message += std::string((char *)buffer + PACKET_BUFFER_SIZE - readable - 1);
     bytes_remaining -= readable;
 
     return bytes_remaining;
