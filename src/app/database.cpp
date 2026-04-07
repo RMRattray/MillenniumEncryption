@@ -171,7 +171,7 @@ void ClientDatabaseManager::insertMessage(QString message, bool original, QStrin
 
     sqlite3_finalize(insertStmt);
 
-    if (original) reportOutgoingMessage(message, friend_name);
+    if (original) reportOutgoingMessage(friend_name, message);
     else if (friend_name == queried_friend) reportIncomingMessage(message, false);
 }
 

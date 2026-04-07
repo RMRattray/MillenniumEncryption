@@ -20,10 +20,12 @@ public:
     
 signals:
     void requestMessageSend(QString recipient, QString message);
-    void reportDecryptedMessage(QString message, bool original, QString sender);
+    void reportDecryptedMessage(QString message, bool original, QString sender); 
+    // Sender is last in above signal to link to ClientDatabaseManager::insertMessage, in which friend_name is null for outgoing messages
+
 public slots:
-    void encryptAndSendMessage(QString message, QString recipient);
-    void decryptAndReceiveMessage(QString message, QString sender);
+    void encryptAndSendMessage(QString recipient, QString message);
+    void decryptAndReceiveMessage(QString sender, QString message);
 
 private:
     QVBoxLayout *layout;
