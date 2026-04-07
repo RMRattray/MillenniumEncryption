@@ -126,7 +126,7 @@ messageSend::messageSend(unsigned char * buffer) {
     bytes_remaining = *(uint32_t *)(buffer + 4);
     recipient = std::string((char *)buffer + 8);
     uint32_t readable = std::min((uint32_t)(PACKET_BUFFER_SIZE - 10 - recipient.size()), bytes_remaining);
-    message = std::string((char *)buffer + PACKET_BUFFER_SIZE - readable - 1);
+    message = std::string((char *)buffer + PACKET_BUFFER_SIZE - readable - 1, readable);
     bytes_remaining -= readable;
 }
 
@@ -156,7 +156,7 @@ int messageSend::read_from_packet(unsigned char * buffer) {
     if (*buffer != type) throw std::runtime_error("Attempting to read message send from wrong sort of packet");
     if (bytes_remaining != *(uint32_t *)(buffer + 4)) throw std::runtime_error("Packet length inconsistent");
     uint32_t readable = std::min((uint32_t)(PACKET_BUFFER_SIZE - 9), bytes_remaining);
-    message += std::string((char *)buffer + PACKET_BUFFER_SIZE - readable - 1);
+    message += std::string((char *)buffer + PACKET_BUFFER_SIZE - readable - 1, readable);
     bytes_remaining -= readable;
 
     return bytes_remaining;
@@ -311,7 +311,7 @@ messageForward::messageForward(unsigned char * buffer) {
     bytes_remaining = *(uint32_t *)(buffer + 4);
     sender = std::string((char *)buffer + 8);
     uint32_t readable = std::min((uint32_t)(PACKET_BUFFER_SIZE - 10 - sender.size()), bytes_remaining);
-    message = std::string((char *)buffer + PACKET_BUFFER_SIZE - readable - 1);
+    message = std::string((char *)buffer + PACKET_BUFFER_SIZE - readable - 1, readable);
     bytes_remaining -= readable;
 }
 
@@ -340,7 +340,7 @@ int messageForward::read_from_packet(unsigned char * buffer) {
     if (*buffer  != type) throw std::runtime_error("Attempting to read message forward from wrong type of packet");
     if (bytes_remaining != *(uint32_t *)(buffer + 4)) throw std::runtime_error("Packet length inconsistent");
     uint32_t readable = std::min((uint32_t)(PACKET_BUFFER_SIZE - 9), bytes_remaining);
-    message += std::string((char *)buffer + PACKET_BUFFER_SIZE - readable - 1);
+    message += std::string((char *)buffer + PACKET_BUFFER_SIZE - readable - 1, readable);
     bytes_remaining -= readable;
 
     return bytes_remaining;
