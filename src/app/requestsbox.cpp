@@ -36,7 +36,6 @@ void RequestsBox::processFriendRequest(QString name) {
 
 void RequestsBox::processFriendResponse(QString name, FriendRequestResponse resp) {
     QMessageBox msgBox;
-    qDebug() << "Received friend response of name" << name << " and type " << resp;
     switch (resp) {
         case FriendRequestResponse::DOES_NOT_EXIST:
             msgBox.setText(QString::fromStdString("No user with that name."));
@@ -50,10 +49,8 @@ void RequestsBox::processFriendResponse(QString name, FriendRequestResponse resp
             addRequest(name, false);
         break;
         case FriendRequestResponse::ACCEPT:
-            qDebug() << "So this runs";
             announceNewFriend(name);
         case FriendRequestResponse::REJECT:
-            qDebug() << "As does this";
             removeRequest(name);
             break;
     }
@@ -88,7 +85,6 @@ void RequestsBox::addRequest(const QString &from, bool hasButtons)
 
 void RequestsBox::removeRequest(const QString &from)
 {
-    qDebug() << "Should be removed friend " << from;
     if (requestWidgets.contains(from)) {
         RequestBox *requestBox = requestWidgets[from];
         layout->removeWidget(requestBox);

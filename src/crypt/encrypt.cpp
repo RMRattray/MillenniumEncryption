@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <cstring>
 #include <cstdlib>
-#include <iostream>
 
 #define BLOCKSIZE 256
 #define BUFFER_SIZE 32
@@ -173,7 +172,6 @@ void decrypt(std::istream &ciphertext, std::ostream &plaintext, FullCodebook cod
     c_start = read_from_buffer(code, c_start);
     while (c_start && c_start < buffer_start + BLOCKSIZE - BUFFER_SIZE) {
         plaintext.put(codebook-code);
-        std::cout << "Read: " << (codebook-code) << std::endl;
         c_start = read_from_buffer(code, c_start);
     }
     while (c_start) {

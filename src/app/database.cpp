@@ -119,8 +119,6 @@ void ClientDatabaseManager::insertMessage(QString message, bool original, QStrin
         return;
     }
 
-    qDebug() << "Friend name is now: " << friend_name;
-
     // First get the friend_id from the friends table
     const char* getFriendIdSql = "SELECT id FROM friends WHERE friend_name = ? AND user = ?";
     sqlite3_stmt* getFriendStmt;
@@ -202,7 +200,6 @@ void ClientDatabaseManager::queryFriends()
 
     sqlite3_finalize(stmt);
     
-    qDebug() << "About to output a list of friends of length " << friends.size();
     emit outputFriendList(friends);
 }
 

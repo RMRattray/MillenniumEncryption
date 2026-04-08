@@ -25,7 +25,6 @@ FriendsBox::~FriendsBox()
 void FriendsBox::addNewFriend(int id, const QString &name, int status)
 {
     if (friendWidgets.contains(id) || friendNameToId.contains(name)) {
-        qDebug() << "Adding duplicate friend";
         return;
     }
 
@@ -35,7 +34,6 @@ void FriendsBox::addNewFriend(int id, const QString &name, int status)
     layout->addWidget(friendBox);
     
     connect(friendBox, &FriendBox::friendClicked, this, [this](QString friendName) {
-        qDebug() << "Friend clicked:" << friendName;
         // selectedFriendId = friendId;
         emit friendSelected(friendName);
     });
