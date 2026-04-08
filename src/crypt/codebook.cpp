@@ -160,7 +160,7 @@ Codebook::Codebook(std::string keyword) {
         while (used[index]) index = (index + 1) * multiplier % 257 - 1;
         *code_ptr = index;
         used[index] = 1;
-        tortoise = codes + index;
+        ++tortoise;
         ++code_ptr;
     }
 }

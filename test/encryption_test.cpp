@@ -17,6 +17,7 @@ void write_sample_texts() {
 int main(int argc, char *argv[]) {
     write_sample_texts();
     FullCodebook codebook("test");
+    FullCodebook extraCodebook("test");
 
     std::cout << "Codebook includes:" << std::endl;
     for (char c : "Hello, world!\n") {
@@ -33,6 +34,17 @@ int main(int argc, char *argv[]) {
     decrypt(ciphertext_new, plaintext_new, codebook);
     ciphertext_new.close();
     plaintext_new.close();
+
+    std::ifstream plaintext1("sample_texts.txt");
+    std::ofstream ciphertext1("ciphertext1.mlnm");
+    encrypt(plaintext1, ciphertext1, extraCodebook);
+    plaintext1.close();
+    ciphertext1.close();
+    std::ifstream ciphertext_new1("ciphertext1.mlnm");
+    std::ofstream plaintext_new1("plaintext1.txt");
+    decrypt(ciphertext_new1, plaintext_new1, extraCodebook);
+    ciphertext_new1.close();
+    plaintext_new1.close();
 
     std::ifstream plaintext2("sample_texts2.txt");
     std::ofstream ciphertext2("ciphertext2.mlnm");
