@@ -98,7 +98,7 @@ CodebookWindow::CodebookWindow(QWidget *parent)
     layout->addWidget(keywordWriteZone);
     layout->addWidget(manualStringZone);
 
-    fileSelectZone->hide();
+    // fileSelectZone->hide();
     keywordWriteZone->hide();
     manualStringZone->hide();
 

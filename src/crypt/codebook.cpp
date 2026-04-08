@@ -174,9 +174,6 @@ void Codebook::write_to_file(std::string filename) {
 bool Codebook::read_from_file(std::string filename) {
     std::ifstream file(filename, std::ios::binary);
     file.read((char*)codes, 256);
-    if (!file.eof()) {
-        return false;
-    }
     file.close();
     return this->verify();
 }
