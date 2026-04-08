@@ -386,13 +386,18 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
                             sendOutPacket(connectedUser, fsu);
 
                             if (friend_is_online) {
+                                // Report the friendship acceptance
+                                frr = std::make_shared<friendRequestResponse>(connectedUser, fra->from, fra->response);
+                                sendOutPacket(fra->from, frr);
+
+                                // And the online status
                                 fsu = std::make_shared<friendStatusUpdate>(connectedUser, FriendStatus::ONLINE);
                                 sendOutPacket(fra->from, fsu);
                             }
                         }
                         break;
                     case FriendRequestResponse::REJECT:
-                        // Forward response and remove from database in ACCEPT **OR** REJECT case
+                        // Forward response and remove from database
                         frr = std::make_shared<friendRequestResponse>(connectedUser, fra->from, fra->response);
                         std::cout << "Passing on that information to " << fra->from;
                         sendOutPacket(fra->from, frr);
