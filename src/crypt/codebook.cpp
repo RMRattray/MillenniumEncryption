@@ -129,7 +129,7 @@ Codebook::Codebook(std::string keyword) {
     int multiplier;
     int index;
     int c;
-    byte_code * code_ptr = codes;
+    byte_code * hare = codes;
     byte_code * tortoise = codes;
 
     // For each character in the keyword, assign a pseudo-related byte in the codebook
@@ -139,29 +139,29 @@ Codebook::Codebook(std::string keyword) {
         multiplier = roots[c];
         index = (c + 1) * multiplier % 257 - 1;
         while (used[index]) index = (index + 1) * multiplier % 257 - 1;
-        *code_ptr = index;
+        *hare = index;
         used[index] = 1;
-        ++code_ptr;
+        ++hare;
     }
 
     // Imagine the same for a null terminator character
     multiplier = roots[0];
     index = 2;
     while (used[index]) index = (index + 1) * 3 % 257 - 1;
-    *code_ptr = index;
+    *hare = index;
     used[index] = 1;
-    ++code_ptr;
+    ++hare;
 
     // Fill out the rest of the codebook based on the first part of the codebook
-    while (code_ptr < codes + 256) {
+    while (hare < codes + 256) {
         c = *tortoise;
         multiplier = roots[c];
         index = (c + 1) * multiplier % 257 - 1;
         while (used[index]) index = (index + 1) * multiplier % 257 - 1;
-        *code_ptr = index;
+        *hare = index;
         used[index] = 1;
         ++tortoise;
-        ++code_ptr;
+        ++hare;
     }
 }
 
@@ -198,22 +198,22 @@ bool Codebook::read_from_strings(std::map<uint8_t, readable_code> &strings) {
     int multiplier;
     int index;
     int c;
-    byte_code * code_ptr = codes;
+    byte_code * hare = codes;
     byte_code * tortoise = codes;
     uint8_t * checker = coded;
 
     // Fill out the rest of the codebook based on the first part of the codebook
-    while (code_ptr < codes + 256) {
+    while (hare < codes + 256) {
         if (*checker == 0) {
             c = *tortoise;
             multiplier = roots[c];
             index = (c + 1) * multiplier % 257 - 1;
             while (used[index]) index = (index + 1) * multiplier % 257 - 1;
-            *code_ptr = index;
+            *hare = index;
             used[index] = 1;
             tortoise = codes + index;
         }
-        ++code_ptr; ++checker;
+        ++hare; ++checker;
     }
 
     return this->verify();
