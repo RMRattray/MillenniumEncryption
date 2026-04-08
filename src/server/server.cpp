@@ -194,6 +194,21 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
     std::unordered_map<std::string, long long int>::iterator myIDLocator;
 
     while (serverRunning) {
+
+        // Packets for use in response
+        resp = NULL;
+        req = NULL;
+        createAccountRequest * car = NULL;
+        loginRequest * lr = NULL;
+        friendRequestSend * frs = NULL;
+        friendRequestAcknowledge * fra = NULL;
+        messageSend * ms = NULL;
+
+        std::shared_ptr<friendRequestForward> frf;
+        std::shared_ptr<friendStatusUpdate> fsu;
+        std::shared_ptr<friendRequestResponse> frr;
+        std::shared_ptr<messageForward> mfr;
+
         // Receive data from the client
         int rbyteCount;
         {
@@ -207,21 +222,22 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
             } else {
                 std::cout << "Error receiving from client " << clientIP << ": " << WSAGetLastError() << std::endl;
             }
+
+            // Tell all of their online friends that they are offline
+            if (loggedIn) {
+                for (auto& name : dbm.getFriendList(connectedUser)) {
+                    std::unique_lock<std::mutex> lock(clientMutex);
+                    bool friend_is_online = (clientIDs.find(name) != clientIDs.end());
+                    lock.unlock();
+
+                    if (friend_is_online) {
+                        fsu = std::make_shared<friendStatusUpdate>(connectedUser, FriendStatus::OFFLINE);
+                        sendOutPacket(name, fsu);
+                    }
+                }
+            }
             break;
         }
-
-        resp = NULL;
-        req = NULL;
-        createAccountRequest * car = NULL;
-        loginRequest * lr = NULL;
-        friendRequestSend * frs = NULL;
-        friendRequestAcknowledge * fra = NULL;
-        messageSend * ms = NULL;
-
-        std::shared_ptr<friendRequestForward> frf;
-        std::shared_ptr<friendStatusUpdate> fsu;
-        std::shared_ptr<friendRequestResponse> frr;
-        std::shared_ptr<messageForward> mfr;
 
         // Action depends on the first byte
         switch (receiveBuffer[0]) {
