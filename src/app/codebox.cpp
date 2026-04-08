@@ -59,17 +59,14 @@ void CodeBox::encryptAndSendMessage(QString recipient, QString message)
         return;
     }
     
-    // Convert QString to std::string for encryption
     std::string messageStr = message.toStdString();
-    
-    // Encrypt the message using the current codebook
-    std::string encryptedMessage;
-    
     std::istringstream messageStream(messageStr);
-    std::ostringstream cipherStream(encryptedMessage);
+    std::ostringstream cipherStream;
     encrypt(messageStream, cipherStream, *current_codebook);
+
+    qDebug() << "Formed a string of size: " << cipherStream.str().size();
     
-    requestMessageSend(recipient, QString::fromStdString(encryptedMessage));
+    requestMessageSend(recipient, QString::fromStdString(cipherStream.str()));
 }
 
 void CodeBox::decryptAndReceiveMessage(QString sender, QString message)
@@ -83,14 +80,12 @@ void CodeBox::decryptAndReceiveMessage(QString sender, QString message)
     // Convert QString to std::string for encryption
     std::string messageStr = message.toStdString();
     
-    // Encrypt the message using the current codebook
-    std::string decryptedMessage;
-    
+    // Decrypt the message using the current codebook
     std::istringstream cipherStream(messageStr);
-    std::ostringstream plainStream(decryptedMessage);
+    std::ostringstream plainStream;
     decrypt(cipherStream, plainStream, *current_codebook);
     
-    reportDecryptedMessage(QString::fromStdString(decryptedMessage), false, sender);
+    reportDecryptedMessage(QString::fromStdString(plainStream.str()), false, sender);
 }
 
 void CodeBox::openCodebookWindow()
