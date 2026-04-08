@@ -219,22 +219,14 @@ bool Codebook::read_from_strings(std::map<uint8_t, readable_code> &strings) {
         ++code_ptr; ++checker;
     }
 
-    for (int i = 0; i < 256; ++i) {
-        std::cout << i << " (" << (char)i << "): " << codes[i] << " (" << to_readable_code(to_full_code(codes[i])) << ")\n";
-    }
-
     return this->verify();
 }
 
 bool Codebook::verify() {
-    std::cout << "And then this code runs" << std::endl;
     uint8_t used[256] = {0};
     byte_code * tortoise = codes;
     while (tortoise < codes + 256) {
-        if (used[*tortoise]) {
-            std::cout << "Repeating " << to_readable_code(to_full_code(*tortoise)) << " at" << (tortoise - codes) << std::endl;
-            return false;
-        }
+        if (used[*tortoise]) return false;
         used[*tortoise] = 1;
         ++tortoise;
     }
@@ -242,15 +234,17 @@ bool Codebook::verify() {
 }
 
 FullCodebook::FullCodebook(std::string keyword) : Codebook(keyword) {
+    full_codes = std::vector<full_code> (256, "\0");
     get_full_codes();
 }
 
 void FullCodebook::get_full_codes() {
-    byte_code * tortoise = codes;
-    while (tortoise < codes + 256) {
-        full_codes.push_back(to_full_code(*tortoise));
-        uncodes[*tortoise] = tortoise - codes;
-        ++tortoise;
+    byte_code * fox = codes;
+    auto wolf = full_codes.begin();
+    while (wolf != full_codes.end()) {
+        *wolf = to_full_code(*fox);
+        uncodes[*fox] = fox - codes;
+        ++fox; ++wolf;
     }
 }
 
@@ -267,7 +261,6 @@ char FullCodebook::operator-(const byte_code code) const {
 }
 
 bool FullCodebook::verify() {
-    std::cout << "This code actually runs!" << std::endl;
     get_full_codes();
     return Codebook::verify();
 }
