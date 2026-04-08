@@ -207,7 +207,7 @@ bool Codebook::read_from_strings(std::map<uint8_t, readable_code> &strings) {
 
     // Fill out the rest of the codebook based on the first part of the codebook
     while (code_ptr < codes + 256) {
-        if (!checker) {
+        if (*checker == 0) {
             c = *tortoise;
             multiplier = roots[c];
             index = (c + 1) * multiplier % 257 - 1;
@@ -219,14 +219,20 @@ bool Codebook::read_from_strings(std::map<uint8_t, readable_code> &strings) {
         ++code_ptr; ++checker;
     }
 
+    for (int i = 0; i < 256; ++i) {
+        std::cout << i << " (" << (char)i << "): " << codes[i] << " (" << to_readable_code(to_full_code(codes[i])) << ")\n";
+    }
+
     return this->verify();
 }
 
 bool Codebook::verify() {
+    std::cout << "And then this code runs" << std::endl;
     uint8_t used[256] = {0};
     byte_code * tortoise = codes;
     while (tortoise < codes + 256) {
         if (used[*tortoise]) {
+            std::cout << "Repeating " << to_readable_code(to_full_code(*tortoise)) << " at" << (tortoise - codes) << std::endl;
             return false;
         }
         used[*tortoise] = 1;
@@ -261,6 +267,7 @@ char FullCodebook::operator-(const byte_code code) const {
 }
 
 bool FullCodebook::verify() {
+    std::cout << "This code actually runs!" << std::endl;
     get_full_codes();
     return Codebook::verify();
 }
