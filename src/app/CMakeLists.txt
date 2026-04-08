@@ -8,6 +8,7 @@ qt_add_executable(millennium_serpent
     codebox.cpp
     clientsocket.cpp
     database.cpp
+    codebookwindow.cpp
 )
 target_link_libraries(millennium_serpent PRIVATE 
     Qt6::Widgets 

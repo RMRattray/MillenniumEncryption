@@ -2,6 +2,7 @@
 #include "../src/crypt/codebook.h"
 #include <string>
 #include <cassert>
+#include <map>
 
 int main(int argc, char *argv[]) {
 
@@ -56,13 +57,31 @@ int main(int argc, char *argv[]) {
     assert(to_readable_code(full_h) == read_h);
 
     FullCodebook full_codebook("test");
-    char c = 'a';
     for (char c : "abcdefghijklmnopqrstuvwxyz") {
         assert(to_byte_code(full_codebook+c) == full_codebook * c);
         assert(to_full_code(full_codebook*c) == full_codebook + c);
         uint8_t p = full_codebook * c;
         assert(full_codebook - p == c);
         std::cout << c << " " << (int)p << std::endl;
+    }
+
+    std::map<uint8_t, readable_code> examples;
+    examples['a'] = "2";
+    examples['e'] = "12";
+    examples['i'] = "22";
+    examples['o'] = "3";
+    examples['u'] = "122";
+
+    assert(full_codebook.read_from_strings(examples));
+    for (char c : "abdeghijklmnopqrstuvwxyz") {
+        assert(to_byte_code(full_codebook+c) == full_codebook * c);
+        assert(to_full_code(full_codebook*c) == full_codebook + c);
+        uint8_t p = full_codebook * c;
+        assert(full_codebook - p == c);
+        std::cout << c << " " << (int)p << std::endl;
+    }
+    for (auto& [c, s] : examples) {
+        assert(to_readable_code(full_codebook+c) == s);
     }
 
     std::cout << "All tests passed" << std::endl;

@@ -31,10 +31,15 @@ private:
     QVBoxLayout *layout;
     QMap<QString, std::shared_ptr<FullCodebook>> codebooks;
     QPushButton *addCodebookPushButton;
+    QPushButton *saveCodebookPushButton;
     std::shared_ptr<FullCodebook> current_codebook;
     QComboBox *codebookComboBox;
 
-    void addNewCodebook();
+    void openCodebookWindow();
+    void saveCurrentCodebook();
+
+private slots:
+    void addNewCodebook(QString codebookName, std::shared_ptr<FullCodebook> codebook);
 };
 
 #endif // CODEBOX_H
