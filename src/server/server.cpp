@@ -194,6 +194,21 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
     std::unordered_map<std::string, long long int>::iterator myIDLocator;
 
     while (serverRunning) {
+
+        // Packets for use in response
+        resp = NULL;
+        req = NULL;
+        createAccountRequest * car = NULL;
+        loginRequest * lr = NULL;
+        friendRequestSend * frs = NULL;
+        friendRequestAcknowledge * fra = NULL;
+        messageSend * ms = NULL;
+
+        std::shared_ptr<friendRequestForward> frf;
+        std::shared_ptr<friendStatusUpdate> fsu;
+        std::shared_ptr<friendRequestResponse> frr;
+        std::shared_ptr<messageForward> mfr;
+
         // Receive data from the client
         int rbyteCount;
         {
@@ -207,21 +222,22 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
             } else {
                 std::cout << "Error receiving from client " << clientIP << ": " << WSAGetLastError() << std::endl;
             }
+
+            // Tell all of their online friends that they are offline
+            if (loggedIn) {
+                for (auto& name : dbm.getFriendList(connectedUser)) {
+                    std::unique_lock<std::mutex> lock(clientMutex);
+                    bool friend_is_online = (clientIDs.find(name) != clientIDs.end());
+                    lock.unlock();
+
+                    if (friend_is_online) {
+                        fsu = std::make_shared<friendStatusUpdate>(connectedUser, FriendStatus::OFFLINE);
+                        sendOutPacket(name, fsu);
+                    }
+                }
+            }
             break;
         }
-
-        resp = NULL;
-        req = NULL;
-        createAccountRequest * car = NULL;
-        loginRequest * lr = NULL;
-        friendRequestSend * frs = NULL;
-        friendRequestAcknowledge * fra = NULL;
-        messageSend * ms = NULL;
-
-        std::shared_ptr<friendRequestForward> frf;
-        std::shared_ptr<friendStatusUpdate> fsu;
-        std::shared_ptr<friendRequestResponse> frr;
-        std::shared_ptr<messageForward> mfr;
 
         // Action depends on the first byte
         switch (receiveBuffer[0]) {
@@ -381,25 +397,26 @@ void MillenniumServer::handleClient(socket_t clientSocket, std::string clientIP,
 
                             bool friend_is_online = (clientIDs.find(fra->from) != clientIDs.end());
                             lock.unlock();
-                            if (friend_is_online) {
-                                fsu = std::make_shared<friendStatusUpdate>(fra->from, FriendStatus::ONLINE);
-                                sendOutPacket(connectedUser, fsu);
 
-                                // TODO:  inform new friend that user is online
-                                // Note that the they are informed of the result in in the below case
-                                // (hence no break statement)
-                            }
-                            else {
-                                fsu = std::make_shared<friendStatusUpdate>(fra->from, FriendStatus::OFFLINE);
-                                sendOutPacket(connectedUser, fsu);
+                            fsu = std::make_shared<friendStatusUpdate>(fra->from, friend_is_online ? FriendStatus::ONLINE : FriendStatus::OFFLINE);
+                            sendOutPacket(connectedUser, fsu);
+
+                            if (friend_is_online) {
+                                // Report the friendship acceptance
+                                frr = std::make_shared<friendRequestResponse>(connectedUser, fra->from, fra->response);
+                                sendOutPacket(fra->from, frr);
+
+                                // And the online status
+                                fsu = std::make_shared<friendStatusUpdate>(connectedUser, FriendStatus::ONLINE);
+                                sendOutPacket(fra->from, fsu);
                             }
                         }
-                    // DO NOT PUT BREAK STATEMENT HERE
+                        break;
                     case FriendRequestResponse::REJECT:
-                        // Forward response and remove from database in ACCEPT **OR** REJECT case
+                        // Forward response and remove from database
                         frr = std::make_shared<friendRequestResponse>(connectedUser, fra->from, fra->response);
-                        std::cout << "Passing on that information to " << fra->to;
-                        sendOutPacket(fra->to, frr);
+                        std::cout << "Passing on that information to " << fra->from;
+                        sendOutPacket(fra->from, frr);
                         std::cout << "\tand should be removing it from the database" << std::endl;
                         dbm.removeFriendRequest(fra->from, connectedUser);
                         break;

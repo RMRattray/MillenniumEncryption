@@ -36,7 +36,7 @@ signals:
     void outputFriendList(std::vector<QString> friends);
     void outputMessageQuery(std::vector<std::tuple<QString, bool>> messages, int first_message_id);
     void reportIncomingMessage(QString message, bool original);
-    void reportOutgoingMessage(QString message, QString recipient);
+    void reportOutgoingMessage(QString recipient, QString message);
     void reportNewFriend(int id, QString name, int status);
 
 public slots:

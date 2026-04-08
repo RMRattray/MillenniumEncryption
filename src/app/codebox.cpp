@@ -46,7 +46,7 @@ CodeBox::~CodeBox()
     // Qt will handle cleanup of child widgets
 }
 
-void CodeBox::encryptAndSendMessage(QString message, QString recipient)
+void CodeBox::encryptAndSendMessage(QString recipient, QString message)
 {
     qDebug() << "Encrypting the message \"" << message << "\" for " << recipient;
     if (!current_codebook) {
@@ -68,7 +68,7 @@ void CodeBox::encryptAndSendMessage(QString message, QString recipient)
     requestMessageSend(recipient, QString::fromStdString(encryptedMessage));
 }
 
-void CodeBox::decryptAndReceiveMessage(QString message, QString sender)
+void CodeBox::decryptAndReceiveMessage(QString sender, QString message)
 {
     if (!current_codebook) {
         qDebug() << "No codebook selected for decryption";
