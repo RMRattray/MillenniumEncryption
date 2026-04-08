@@ -11,3 +11,10 @@ target_include_directories(encryption_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/.
 
 target_link_libraries(codebook_test PRIVATE millennium_crypt)
 target_link_libraries(encryption_test PRIVATE millennium_crypt)
+
+add_executable(packet_test
+    packet_test.cpp
+)
+
+target_include_directories(packet_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src/server)
+target_link_libraries(packet_test PRIVATE millennium_server)
