@@ -16,6 +16,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QIcon>
+#include <QScreen>
 #include <QSpacerItem>
 #include <QTcpSocket>
 #include <QPixmap>
@@ -28,7 +29,6 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
     QLabel * logo = new QLabel(this);
     QPixmap pixmap(":/images/badlogo.png");
     logo->setPixmap(pixmap);
-    qDebug() << pixmap.width() << " " << pixmap.height();
     logo->setAlignment(Qt::AlignCenter);
 
     // Logo, and focus screen (either login, main, or error) go in layout together
@@ -44,7 +44,21 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
 
     mainCentralWidget = new QWidget(container);
     layout->addWidget(mainCentralWidget);
+
+    // Get screen height
+    QScreen *screen = QGuiApplication::primaryScreen();
+    int screenHeight = screen->availableGeometry().height();
+    int screenWidth = screen->availableGeometry().width();
+
+    // Apply height constraints
+    mainCentralWidget->setMaximumHeight(static_cast<int>(screenHeight - pixmap.height()));
+    mainCentralWidget->setMinimumHeight(static_cast<int>(screenHeight * 0.5));
+    mainCentralWidget->setMaximumWidth(screenWidth);
+    mainCentralWidget->setMinimumWidth(static_cast<int>(screenWidth * 0.4));
+    // Or use setFixedHeight(targetHeight) if you want it strictly 80%
+
     QHBoxLayout *mainLayout = new QHBoxLayout(mainCentralWidget);
+
     // Left frame
     leftFrame = new QFrame(mainCentralWidget);
     leftFrame->setFrameShape(QFrame::StyledPanel);
@@ -63,7 +77,6 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
     // Add CodeBox
     codeBox = new CodeBox(leftFrame);
     leftLayout->addWidget(codeBox);
-
 
     leftLayout->setStretch(0, 1);
     leftLayout->setStretch(1, 0);
@@ -149,6 +162,7 @@ void MainWindow::showLoginWidget()
     loginWidget->show();
     errorScreen->hide();
     mainCentralWidget->hide();
+    this->move(screen()->availableGeometry().center() - QPoint(width() / 2, height() / 2));
 }
 
 void MainWindow::showMainCentralWidget(QString username) {
@@ -156,6 +170,7 @@ void MainWindow::showMainCentralWidget(QString username) {
     mainCentralWidget->show();
     errorScreen->hide();
     loginWidget->hide();
+    this->move(screen()->availableGeometry().center() - QPoint(width() / 2, height() / 2));
 }
 
 void MainWindow::showError(QString message) {
@@ -163,6 +178,7 @@ void MainWindow::showError(QString message) {
     errorScreen->show();
     loginWidget->hide();
     mainCentralWidget->hide();
+    this->move(screen()->availableGeometry().center() - QPoint(width() / 2, height() / 2));
 }
 
 MainWindow::~MainWindow()

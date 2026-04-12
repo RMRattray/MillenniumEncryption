@@ -246,9 +246,9 @@ void ClientDatabaseManager::queryMessages(QString friend_name, int count, int be
     
     const char* sql;
     if (before > 0) {
-        sql = "SELECT id, message, original FROM messages WHERE friend_id = ? AND id < ? ORDER BY id DESC LIMIT ?";
+        sql = "SELECT id, message, original FROM messages WHERE friend_id = ? AND id < ? ORDER BY id ASC LIMIT ?";
     } else {
-        sql = "SELECT id, message, original FROM messages WHERE friend_id = ? ORDER BY id DESC LIMIT ?";
+        sql = "SELECT id, message, original FROM messages WHERE friend_id = ? ORDER BY id ASC LIMIT ?";
     }
     
     sqlite3_stmt* stmt;

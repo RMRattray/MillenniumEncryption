@@ -103,13 +103,6 @@ int main(int argc, char **argv) {
         }
     }
     
-    // Validate required parameters
-    if (keyword.empty()) {
-        std::cerr << "Error: Keyword (-k) is required\n";
-        print_usage(argv[0]);
-        return 1;
-    }
-    
     if (!use_string_input && input_file.empty()) {
         std::cerr << "Error: Either input file (-f) or input string (-s) must be specified\n";
         print_usage(argv[0]);

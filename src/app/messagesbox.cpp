@@ -85,6 +85,13 @@ void MessagesBox::processMessages(std::vector<std::tuple<QString, bool>> message
 void MessagesBox::addMessage(QString message, bool original) {
     MessageBox *messageBox = new MessageBox(message, original, scrollContent);
     scrollContent->layout()->addWidget(messageBox);
+
+    // Scroll to bottom after layout updates
+    QTimer::singleShot(0, this, [this]() {
+        scrollArea->verticalScrollBar()->setValue(
+            scrollArea->verticalScrollBar()->maximum()
+        );
+    });
 }
 
 void MessagesBox::clearMessages()
