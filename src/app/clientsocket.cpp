@@ -110,15 +110,14 @@ void ClientSocketManager::sendFriendResponse(QString friend_name, FriendRequestR
     sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
 }
 
-void ClientSocketManager::sendMessage(QString friend_name, QString message)
+void ClientSocketManager::sendMessage(QString friend_name, QByteArray messageEnc)
 {
     if (sock->state() != QAbstractSocket::ConnectedState) {
         qDebug() << "Not connected to server";
         return;
     }
     
-    qDebug() << "Sending the message" << message << "to" << friend_name;
-    messageSend packet(message.toStdString(), friend_name.toStdString());
+    messageSend packet(messageEnc.toStdString(), friend_name.toStdString());
     unsigned char buffer[PACKET_BUFFER_SIZE];
     while (packet.write_to_packet(buffer)) {
         sock->write(reinterpret_cast<const char*>(buffer), PACKET_BUFFER_SIZE);
@@ -170,7 +169,7 @@ void ClientSocketManager::handlePacket(char *packet)
                 sock->read((char *)buffer, PACKET_BUFFER_SIZE);
                 while(response.read_from_packet(buffer)) sock->read((char *)buffer, PACKET_BUFFER_SIZE);
             }
-            emit mentionMessage(QString::fromStdString(response.sender), QString::fromStdString(response.message));
+            emit mentionMessage(QString::fromStdString(response.sender), QByteArray::fromStdString(response.message));
             break;
         }
         

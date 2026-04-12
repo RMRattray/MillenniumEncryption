@@ -19,7 +19,7 @@ signals:
     void mentionFriendStatus(QString friend_name, FriendStatus status);
     void mentionFriendRequest(QString friend_name);
     void mentionFriendResponse(QString friend_name, FriendRequestResponse response);
-    void mentionMessage(QString friend_name, QString message);
+    void mentionMessage(QString friend_name, QByteArray messageEnc);
     void mentionSocketError(QString error_message);
 
 public slots:
@@ -27,7 +27,7 @@ public slots:
     void sendLoginRequest(QString user_name, QString password);
     void sendFriendRequest(QString friend_name);
     void sendFriendResponse(QString friend_name, FriendRequestResponse response);
-    void sendMessage(QString friend_name, QString message);
+    void sendMessage(QString friend_name, QByteArray messageEnc);
 
 private:
     void handlePacket(char * packet);

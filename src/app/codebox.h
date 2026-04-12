@@ -19,13 +19,13 @@ public:
     ~CodeBox();
     
 signals:
-    void requestMessageSend(QString recipient, QString message);
+    void requestMessageSend(QString recipient, QByteArray messageEncrypted);
     void reportDecryptedMessage(QString message, bool original, QString sender); 
     // Sender is last in above signal to link to ClientDatabaseManager::insertMessage, in which friend_name is null for outgoing messages
 
 public slots:
     void encryptAndSendMessage(QString recipient, QString message);
-    void decryptAndReceiveMessage(QString sender, QString message);
+    void decryptAndReceiveMessage(QString sender, QByteArray messageEncrypted);
 
 private:
     QVBoxLayout *layout;

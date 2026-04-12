@@ -10,6 +10,7 @@
 #include <QFileInfo>
 #include <string>
 #include <sstream>
+#include <QByteArray>
 
 CodeBox::CodeBox(QWidget *parent)
     : QWidget(parent), current_codebook(nullptr)
@@ -53,31 +54,19 @@ CodeBox::~CodeBox()
 }
 
 void CodeBox::encryptAndSendMessage(QString recipient, QString message)
-{
-    if (!current_codebook) {
-        qDebug() << "No codebook selected for encryption";
-        requestMessageSend(recipient, message);
-        return;
-    }
-    
+{   
     std::string messageStr = message.toStdString();
     std::istringstream messageStream(messageStr);
     std::ostringstream cipherStream;
     encrypt(messageStream, cipherStream, *current_codebook);
     
-    requestMessageSend(recipient, QString::fromStdString(cipherStream.str()));
+    requestMessageSend(recipient, QByteArray::fromStdString(cipherStream.str()));
 }
 
-void CodeBox::decryptAndReceiveMessage(QString sender, QString message)
+void CodeBox::decryptAndReceiveMessage(QString sender, QByteArray messageEnc)
 {
-    if (!current_codebook) {
-        qDebug() << "No codebook selected for decryption";
-        reportDecryptedMessage(message, false, sender);
-        return;
-    }
-    
     // Convert QString to std::string for encryption
-    std::string messageStr = message.toStdString();
+    std::string messageStr = messageEnc.toStdString();
     
     // Decrypt the message using the current codebook
     std::istringstream cipherStream(messageStr);
