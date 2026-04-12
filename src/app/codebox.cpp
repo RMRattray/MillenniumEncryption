@@ -43,6 +43,8 @@ CodeBox::CodeBox(QWidget *parent)
                     current_codebook = nullptr;
                 }
             });
+    
+    addNewCodebook("default", std::make_shared<FullCodebook>(""));
 }
 
 CodeBox::~CodeBox()
