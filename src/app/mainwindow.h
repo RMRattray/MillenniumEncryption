@@ -32,9 +32,6 @@ private:
     void showLoginWidget();
     void showError(QString message);
 
-    int idealHeight;
-    int idealWidth;
-
     LoginWidget *loginWidget;
 
     QWidget *mainCentralWidget;

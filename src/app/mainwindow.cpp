@@ -29,7 +29,7 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
     QScreen *screen = QGuiApplication::primaryScreen();
     int screenHeight = screen->availableGeometry().height();
     int screenWidth = screen->availableGeometry().width();
-    idealHeight = screenHeight - 100;
+    // idealHeight = screenHeight - 100;
 
     // qDebug() << screenHeight << " " << screenWidth;
     // qDebug() << pixmap.height() << " " << pixmap.width();
@@ -54,8 +54,8 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
     mainCentralWidget = new QWidget(container);
     layout->addWidget(mainCentralWidget);
 
-    mainCentralWidget->setMaximumHeight(static_cast<int>(idealHeight - pixmap.height()));
-    mainCentralWidget->setMaximumWidth(screenWidth);
+    // mainCentralWidget->setMaximumHeight(static_cast<int>(idealHeight - pixmap.height()));
+    mainCentralWidget->setMinimumHeight(screenHeight / 2);
     mainCentralWidget->setMinimumWidth(static_cast<int>(screenWidth * 0.4));
 
     QHBoxLayout *mainLayout = new QHBoxLayout(mainCentralWidget);
@@ -171,9 +171,6 @@ void MainWindow::showMainCentralWidget(QString username) {
     errorScreen->hide();
     loginWidget->hide();
     mainCentralWidget->show();
-    setMaximumHeight(idealHeight);
-    qDebug() << height() << " " << idealHeight;
-    qDebug() << mainCentralWidget->height() << " " << mainCentralWidget->maximumHeight();
     this->move(screen()->availableGeometry().center() - QPoint(width() / 2, height() / 2));
 }
 
