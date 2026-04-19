@@ -25,6 +25,16 @@
 MainWindow::MainWindow(QString server_address, QWidget *parent)
     : QMainWindow(parent)
 {
+    // Get screen height
+    QScreen *screen = QGuiApplication::primaryScreen();
+    int screenHeight = screen->availableGeometry().height();
+    int screenWidth = screen->availableGeometry().width();
+    // idealHeight = screenHeight - 100;
+
+    // qDebug() << screenHeight << " " << screenWidth;
+    // qDebug() << pixmap.height() << " " << pixmap.width();
+
+
     // Add a logo to the top of the main window!
     QLabel * logo = new QLabel(this);
     QPixmap pixmap(":/images/badlogo.png");
@@ -38,24 +48,15 @@ MainWindow::MainWindow(QString server_address, QWidget *parent)
     setCentralWidget(container);
     logo->show();
 
-    // Login widget takes up the entire screen
     loginWidget = new LoginWidget(container);
     layout->addWidget(loginWidget);
 
     mainCentralWidget = new QWidget(container);
     layout->addWidget(mainCentralWidget);
 
-    // Get screen height
-    QScreen *screen = QGuiApplication::primaryScreen();
-    int screenHeight = screen->availableGeometry().height();
-    int screenWidth = screen->availableGeometry().width();
-
-    // Apply height constraints
-    mainCentralWidget->setMaximumHeight(static_cast<int>(screenHeight - pixmap.height()));
-    mainCentralWidget->setMinimumHeight(static_cast<int>(screenHeight * 0.5));
-    mainCentralWidget->setMaximumWidth(screenWidth);
+    // mainCentralWidget->setMaximumHeight(static_cast<int>(idealHeight - pixmap.height()));
+    mainCentralWidget->setMinimumHeight(screenHeight / 2);
     mainCentralWidget->setMinimumWidth(static_cast<int>(screenWidth * 0.4));
-    // Or use setFixedHeight(targetHeight) if you want it strictly 80%
 
     QHBoxLayout *mainLayout = new QHBoxLayout(mainCentralWidget);
 
@@ -167,9 +168,9 @@ void MainWindow::showLoginWidget()
 
 void MainWindow::showMainCentralWidget(QString username) {
     // TODO:  Put the username on screen somewhere?
-    mainCentralWidget->show();
     errorScreen->hide();
     loginWidget->hide();
+    mainCentralWidget->show();
     this->move(screen()->availableGeometry().center() - QPoint(width() / 2, height() / 2));
 }
 
