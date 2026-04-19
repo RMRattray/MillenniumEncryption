@@ -22,6 +22,8 @@ and for the client of one sending messages to a central server.  Its code is fou
 * **MillenniumFalcon** is the server itself, and the first program to be named,
 originating the animal theme.  Its code is found in `src/server`.
 
+A video demonstration of the software is available on [YouTube](https://youtu.be/F3YZL87vvvQ).
+
 ### Libraries
 * `millennium_crypt` contains functions and classes for implementing the special code, managing codebooks, etc.
 Its code is found in `src/crypt`.
