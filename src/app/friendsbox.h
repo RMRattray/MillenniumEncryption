@@ -5,9 +5,10 @@
 #include <QVBoxLayout>
 #include <QMap>
 #include <QLabel>
-#include <QScrollArea>
 #include <sqlite3.h>
 #include <vector>
+#include <QScrollArea>
+#include <Qt>
 
 class FriendBox;
 
@@ -30,10 +31,12 @@ signals:
 
 private:
     QVBoxLayout *layout;
-    QFrame* frame;
-    QScrollArea* scroll;
     QMap<int, FriendBox*> friendWidgets;
     QMap<QString, int> friendNameToId;
+    // The area for the FriendBox
+    QScrollArea* scrollArea;
+    // Widget so the FriendBoxes can be stored inside of it
+    QWidget* scrollContent;
     int selectedFriendId;
 };
 

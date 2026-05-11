@@ -8,8 +8,6 @@
 #include <string>
 #include <QString>
 #include "vector"
-#include <QScrollArea>
-#include <QFrame>
 
 FriendsBox::FriendsBox(QWidget *parent)
     : QWidget(parent)
@@ -18,16 +16,24 @@ FriendsBox::FriendsBox(QWidget *parent)
     layout->setSpacing(5);
     layout->setContentsMargins(5, 5, 5, 5);
 
-    scroll = new QScrollArea(this);
-    // scroll->setWidget(frame);
+    // Create a scroll area for the FriendBoxes
+    scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true); // Allow resizing
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff); // We don't need to scroll horizontally
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    // Note, QScrollArea has setWidget, not addWidget => Implies that only one widget can exist for it
 
-    QWidget* scrollContent = new QWidget(scroll);
+    // Make a box/Widget that has addWidget so we can add potentially infinite friends
+    // Use QWidget for this
+    scrollContent = new QWidget(scrollArea); // We want scrollContent to be the child of scrollArea
+    // Turns out that scrollContent does need a layout based off of itself
+    // Without that layout, it puts stuff in the top left concern without spacing
     scrollContent->setLayout(new QVBoxLayout(scrollContent));
-    scrollContent->layout()->setSpacing(5);
-    scrollContent->layout()->setContentsMargins(5, 5, 5, 5);
-    
-    scroll->setWidget(scrollContent);
-    layout->addWidget(scroll);
+    // Try aligning to the center
+    scrollContent->layout()->setAlignment(Qt::AlignHCenter);
+
+    scrollArea->setWidget(scrollContent);
+    layout->addWidget(scrollArea);
 }
 
 FriendsBox::~FriendsBox()
@@ -38,17 +44,16 @@ FriendsBox::~FriendsBox()
 void FriendsBox::addNewFriend(int id, const QString &name, int status)
 {
     if (friendWidgets.contains(id) || friendNameToId.contains(name)) {
-        qDebug() << "Adding duplicate friend";
         return;
     }
 
     FriendBox *friendBox = new FriendBox(id, name, status, this);
     friendWidgets[id] = friendBox;
     friendNameToId[name] = id;
-    layout->addWidget(friendBox);
-    
+    // layout->addWidget(friendBox); Obsolete
+    // Add the new friendBox to the layout of scrollContent
+    scrollContent->layout()->addWidget(friendBox);
     connect(friendBox, &FriendBox::friendClicked, this, [this](QString friendName) {
-        qDebug() << "Friend clicked:" << friendName;
         // selectedFriendId = friendId;
         emit friendSelected(friendName);
     });
