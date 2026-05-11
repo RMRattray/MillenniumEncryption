@@ -10,6 +10,8 @@
 #include <QMessageBox>
 #include <QDebug>
 
+// New quest, add a scrollable box to the request box
+
 RequestsBox::RequestsBox(QWidget *parent)
     : QWidget(parent)
 {

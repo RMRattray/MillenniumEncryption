@@ -1,6 +1,8 @@
 # Check for various versions of SQLite3
 if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/sqlite-amalgamation-3510300" AND IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/sqlite-amalgamation-3510300")
     set(SQLITE_DIR "sqlite-amalgamation-3510300")
+elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/sqlite-amalgamation-3530100" AND IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/sqlite-amalgamation-3530100")
+    set(SQLITE_DIR "sqlite-amalgamation-3530100")
 elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/sqlite-amalgamation-3510100" AND IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/sqlite-amalgamation-3510100")
     set(SQLITE_DIR "sqlite-amalgamation-3510100")
 elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/sqlite-amalgamation-3500300" AND IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/sqlite-amalgamation-3500300")

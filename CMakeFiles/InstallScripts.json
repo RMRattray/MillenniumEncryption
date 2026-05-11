@@ -1,0 +1,13 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Users/PNF40/.vscode/MillenniumEncryption/cmake_install.cmake",
+		"C:/Users/PNF40/.vscode/MillenniumEncryption/third_party/cmake_install.cmake",
+		"C:/Users/PNF40/.vscode/MillenniumEncryption/src/crypt/cmake_install.cmake",
+		"C:/Users/PNF40/.vscode/MillenniumEncryption/src/loc/cmake_install.cmake",
+		"C:/Users/PNF40/.vscode/MillenniumEncryption/src/server/cmake_install.cmake",
+		"C:/Users/PNF40/.vscode/MillenniumEncryption/test/cmake_install.cmake",
+		"C:/Users/PNF40/.vscode/MillenniumEncryption/src/app/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

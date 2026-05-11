@@ -15,6 +15,25 @@ FriendsBox::FriendsBox(QWidget *parent)
     layout = new QVBoxLayout(this);
     layout->setSpacing(5);
     layout->setContentsMargins(5, 5, 5, 5);
+
+    // Create a scroll area for the FriendBoxes
+    scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true); // Allow resizing
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff); // We don't need to scroll horizontally
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    // Note, QScrollArea has setWidget, not addWidget => Implies that only one widget can exist for it
+
+    // Make a box/Widget that has addWidget so we can add potentially infinite friends
+    // Use QWidget for this
+    scrollContent = new QWidget(scrollArea); // We want scrollContent to be the child of scrollArea
+    // Turns out that scrollContent does need a layout based off of itself
+    // Without that layout, it puts stuff in the top left concern without spacing
+    scrollContent->setLayout(new QVBoxLayout(scrollContent));
+    // Try aligning to the center
+    scrollContent->layout()->setAlignment(Qt::AlignHCenter);
+
+    scrollArea->setWidget(scrollContent);
+    layout->addWidget(scrollArea);
 }
 
 FriendsBox::~FriendsBox()
@@ -31,8 +50,9 @@ void FriendsBox::addNewFriend(int id, const QString &name, int status)
     FriendBox *friendBox = new FriendBox(id, name, status, this);
     friendWidgets[id] = friendBox;
     friendNameToId[name] = id;
-    layout->addWidget(friendBox);
-    
+    // layout->addWidget(friendBox); Obsolete
+    // Add the new friendBox to the layout of scrollContent
+    scrollContent->layout()->addWidget(friendBox);
     connect(friendBox, &FriendBox::friendClicked, this, [this](QString friendName) {
         // selectedFriendId = friendId;
         emit friendSelected(friendName);
